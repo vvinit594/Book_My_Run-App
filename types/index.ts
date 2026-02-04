@@ -153,3 +153,111 @@ export interface FilterOptions {
     max: number;
   };
 }
+
+// ============================================
+// BOOKING FLOW TYPES
+// ============================================
+
+export interface TicketCategory {
+  id: string;
+  category: EventCategory;
+  title: string;
+  description: string;
+  distance: string;
+  price: number;
+  originalPrice?: number;
+  slotsRemaining: number;
+  perks: string[];
+  closingDate: string;
+}
+
+export interface ParticipantBasicDetails {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+export interface ParticipantPersonalDetails {
+  gender: "Male" | "Female" | "Other";
+  dateOfBirth: string;
+  tShirtSize: "XS" | "S" | "M" | "L" | "XL" | "XXL";
+  bloodGroup: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+}
+
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  relationship: string;
+}
+
+export interface AddressDetails {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export interface ParticipantDetails {
+  basic: ParticipantBasicDetails;
+  personal: ParticipantPersonalDetails;
+  emergency: EmergencyContact;
+  address: AddressDetails;
+  waiverAccepted: boolean;
+  newsletterOptIn: boolean;
+}
+
+export interface BookingState {
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+  eventVenue: string;
+  selectedTicket: TicketCategory | null;
+  quantity: number;
+  participants: ParticipantDetails[];
+  couponCode?: string;
+  couponDiscount?: number;
+  subtotal: number;
+  convenienceFee: number;
+  gst: number;
+  totalAmount: number;
+}
+
+export type PaymentMethod = "UPI" | "CARD" | "NETBANKING" | "WALLET";
+
+export interface UPIOption {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface CardDetails {
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  cardholderName: string;
+}
+
+export interface BankOption {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface WalletOption {
+  id: string;
+  name: string;
+  icon: string;
+  balance?: number;
+}
+
+export interface PaymentState {
+  selectedMethod: PaymentMethod | null;
+  upiId?: string;
+  selectedUPI?: UPIOption;
+  cardDetails?: CardDetails;
+  selectedBank?: BankOption;
+  selectedWallet?: WalletOption;
+}

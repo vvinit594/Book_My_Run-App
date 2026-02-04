@@ -1,6 +1,6 @@
 import React from "react";
 import { View, ScrollView, StyleSheet, Alert } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/colors";
 import { Spacing } from "../../constants/spacing";
@@ -20,6 +20,7 @@ import {
 
 export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   
   // Get event details from mock data
   const event = getEventDetails(id || "1");
@@ -45,7 +46,23 @@ export default function EventDetailsScreen() {
   };
 
   const handleBookPress = () => {
-    Alert.alert("Book Tickets", `Booking flow for: ${event.title}`);
+    // Format date for display
+    const eventDate = new Date(event.date);
+    const formattedDate = eventDate.toLocaleDateString("en-IN", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    router.push({
+      pathname: "/booking/select-ticket",
+      params: {
+        eventId: event.id,
+        eventTitle: event.title,
+        eventDate: formattedDate,
+        eventVenue: `${event.location.venue}, ${event.location.city}`,
+      },
+    });
   };
 
   const handleGalleryImagePress = (index: number) => {
