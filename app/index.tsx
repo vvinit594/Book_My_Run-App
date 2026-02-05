@@ -6,7 +6,6 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import {
@@ -74,6 +73,14 @@ export default function HomeScreen() {
     Alert.alert("Filters", "Filter bottom sheet coming soon!");
   };
 
+  const handleListEventPress = () => {
+    router.push("/organizer/dashboard");
+  };
+
+  const handleNotificationsPress = () => {
+    Alert.alert("Notifications", "Notifications screen coming soon!");
+  };
+
   const handleLoadMore = () => {
     setLoadingMore(true);
     // Simulate API call
@@ -92,13 +99,15 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
       {/* Top App Bar */}
       <TopAppBar
         city={selectedCity}
         onCityPress={handleCityPress}
         onSearchPress={handleSearchPress}
         onProfilePress={handleProfilePress}
+        onListEventPress={handleListEventPress}
+        onNotificationsPress={handleNotificationsPress}
       />
 
       <ScrollView
@@ -170,7 +179,7 @@ export default function HomeScreen() {
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

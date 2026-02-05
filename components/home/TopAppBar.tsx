@@ -4,18 +4,25 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  TouchableOpacity,
   StatusBar,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/colors";
-import { Spacing, FontSize } from "../../constants/spacing";
+import { Spacing } from "../../constants/spacing";
+
+const NAVBAR_HEIGHT = 56;
+const MIN_TOUCH_TARGET = 44;
 
 interface TopAppBarProps {
   city: string;
   onCityPress: () => void;
   onSearchPress: () => void;
   onProfilePress: () => void;
+  onListEventPress: () => void;
+  onNotificationsPress?: () => void;
 }
 
 export default function TopAppBar({
@@ -23,58 +30,128 @@ export default function TopAppBar({
   onCityPress,
   onSearchPress,
   onProfilePress,
+  onListEventPress,
+  onNotificationsPress,
 }: TopAppBarProps) {
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
       
-      {/* City Selector */}
-      <Pressable style={styles.citySelector} onPress={onCityPress}>
-        <Ionicons name="location-sharp" size={20} color={Colors.primary} />
-        <Text style={styles.cityText}>{city}</Text>
-        <Ionicons name="chevron-down" size={18} color={Colors.textWhite} />
-      </Pressable>
+      <View style={styles.container}>
+        {/* Left: Logo */}
+        <View style={styles.leftSection}>
+          <Text style={styles.logo}>
+            <Text style={styles.logoBook}>book</Text>
+            <Text style={styles.logoMy}>my</Text>
+            <Text style={styles.logoRun}>run</Text>
+          </Text>
+        </View>
 
-      {/* Right Icons */}
-      <View style={styles.rightIcons}>
-        <Pressable style={styles.iconButton} onPress={onSearchPress}>
-          <Ionicons name="search-outline" size={24} color={Colors.textWhite} />
+        {/* Center: City Selector */}
+        <Pressable 
+          style={styles.citySelector} 
+          onPress={onCityPress}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="location" size={14} color={Colors.primary} />
+          <Text style={styles.cityText}>{city}</Text>
+          <Ionicons name="chevron-down" size={12} color={Colors.textWhite} />
         </Pressable>
-        <Pressable style={styles.iconButton} onPress={onProfilePress}>
-          <Ionicons name="person-circle-outline" size={26} color={Colors.textWhite} />
-        </Pressable>
+
+        {/* Right: Actions */}
+        <View style={styles.rightSection}>
+          {/* List Your Event Button */}
+          <TouchableOpacity 
+            style={styles.listEventButton} 
+            onPress={onListEventPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.listEventText}>List Your Event</Text>
+          </TouchableOpacity>
+
+          {/* Notification Icon */}
+          <Pressable 
+            style={styles.iconButton} 
+            onPress={onNotificationsPress}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.textWhite} />
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.backgroundDark,
+  },
   container: {
+    height: NAVBAR_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: Colors.backgroundDark,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight! + Spacing.md : Spacing.md,
+  },
+  leftSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 90,
+  },
+  logo: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  logoBook: {
+    color: Colors.textWhite,
+  },
+  logoMy: {
+    color: Colors.primary,
+  },
+  logoRun: {
+    color: Colors.textWhite,
   },
   citySelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: Spacing.md,
+    height: 32,
+    borderRadius: 16,
+    gap: 4,
   },
   cityText: {
     color: Colors.textWhite,
-    fontSize: FontSize.lg,
+    fontSize: 13,
     fontWeight: "600",
-    marginLeft: Spacing.xs,
+    marginHorizontal: 2,
   },
-  rightIcons: {
+  rightSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: Spacing.sm,
+  },
+  listEventButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listEventText: {
+    color: Colors.textWhite,
+    fontSize: 12,
+    fontWeight: "700",
   },
   iconButton: {
-    padding: Spacing.xs,
+    width: MIN_TOUCH_TARGET,
+    height: MIN_TOUCH_TARGET,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

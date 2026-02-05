@@ -1,0 +1,13 @@
+export { default as Step1EventBasics } from './Step1EventBasics';
+export { default as Step2EventLocation } from './Step2EventLocation';
+export { default as Step3EventDescription } from './Step3EventDescription';
+export { default as Step4EventPhotos } from './Step4EventPhotos';
+export { default as Step5GSTConfirmation } from './Step5GSTConfirmation';
+export { default as Step6Tickets } from './Step6Tickets';
+export { default as Step7RegistrationQuestions } from './Step7RegistrationQuestions';
+export { default as Step8AgeCategory } from './Step8AgeCategory';
+export { default as Step9BibNumber } from './Step9BibNumber';
+export { default as Step10DiscountCoupon } from './Step10DiscountCoupon';
+export { default as Step11BookingConfirmation } from './Step11BookingConfirmation';
+export { default as Step12EmailPreview } from './Step12EmailPreview';
+export { default as Step13MarketingPackages } from './Step13MarketingPackages';
