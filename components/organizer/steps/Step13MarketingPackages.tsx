@@ -12,6 +12,7 @@ import { EventDraft } from '../../../types/organizer';
 interface Props {
   eventDraft: EventDraft;
   updateEventDraft: (updates: Partial<EventDraft>) => void;
+  onSaveDraft?: () => void;
 }
 
 const MARKETING_PACKAGES = [
@@ -53,7 +54,7 @@ const MARKETING_PACKAGES = [
   },
 ];
 
-export default function Step13MarketingPackages({ eventDraft, updateEventDraft }: Props) {
+export default function Step13MarketingPackages({ eventDraft, updateEventDraft, onSaveDraft }: Props) {
   const { marketing, basics } = eventDraft;
 
   const updateMarketing = (updates: Partial<typeof marketing>) => {
@@ -201,6 +202,16 @@ export default function Step13MarketingPackages({ eventDraft, updateEventDraft }
             Not ready? You can save as draft and publish later.
           </Text>
         </View>
+
+        {/* Save Draft Button */}
+        <TouchableOpacity 
+          style={styles.saveDraftButton}
+          onPress={onSaveDraft}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="save-outline" size={18} color="#E91E63" />
+          <Text style={styles.saveDraftButtonText}>Save Draft</Text>
+        </TouchableOpacity>
 
         <View style={styles.bottomSpacing} />
       </View>
@@ -449,6 +460,25 @@ const styles = StyleSheet.create({
   draftText: {
     fontSize: 13,
     color: '#666',
+  },
+  saveDraftButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderWidth: 1.5,
+    borderColor: '#E91E63',
+    borderRadius: 24,
+    backgroundColor: '#FFF5F8',
+    alignSelf: 'center',
+    marginTop: 4,
+  },
+  saveDraftButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E91E63',
   },
   bottomSpacing: {
     height: 40,

@@ -123,12 +123,16 @@ export default function CreateEventScreen() {
   const handleSaveDraft = useCallback(() => {
     Alert.alert(
       'Save Draft',
-      'Your event has been saved as a draft. You can continue editing later.',
+      'Your event will be saved as a draft. You can continue editing or return to the dashboard.',
       [
         { text: 'Continue Editing', style: 'cancel' },
         { 
-          text: 'Exit', 
-          onPress: () => router.replace('/organizer/dashboard')
+          text: 'Save Draft', 
+          style: 'destructive',
+          onPress: () => {
+            // Save draft logic here
+            router.replace('/organizer/dashboard');
+          }
         },
       ]
     );
@@ -206,7 +210,7 @@ export default function CreateEventScreen() {
       case 12:
         return <Step12EmailPreview {...stepProps} />;
       case 13:
-        return <Step13MarketingPackages {...stepProps} />;
+        return <Step13MarketingPackages {...stepProps} onSaveDraft={handleSaveDraft} />;
       default:
         return <Step1EventBasics {...stepProps} />;
     }

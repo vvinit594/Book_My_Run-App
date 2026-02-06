@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,9 +6,14 @@ import {
   ScrollView, 
   TouchableOpacity,
   Image,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { EventDraft } from '../../../types/organizer';
+
+const MAX_GALLERY_IMAGES = 10;
 
 interface Props {
   eventDraft: EventDraft;
@@ -17,6 +22,7 @@ interface Props {
 
 export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props) {
   const { photos } = eventDraft;
+  const [isLoading, setIsLoading] = useState(false);
 
   const updatePhotos = (updates: Partial<typeof photos>) => {
     updateEventDraft({
@@ -24,20 +30,120 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
     });
   };
 
-  const handleSelectBanner = () => {
-    // In a real app, this would open image picker
-    // For now, we'll use a placeholder
-    updatePhotos({ 
-      bannerImage: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=800' 
-    });
+  // Request permission to access media library
+  const requestPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please allow access to your photo library to upload images.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: () => {
+            // On a real app, you'd open settings here
+            Alert.alert('Info', 'Please enable photo access in your device settings.');
+          }},
+        ]
+      );
+      return false;
+    }
+    return true;
   };
 
-  const handleAddGalleryImage = () => {
-    // In a real app, this would open image picker
-    const newImage = `https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=400&t=${Date.now()}`;
-    updatePhotos({
-      galleryImages: [...photos.galleryImages, newImage],
-    });
+  // Handle banner image selection
+  const handleSelectBanner = async () => {
+    const hasPermission = await requestPermission();
+    if (!hasPermission) return;
+
+    setIsLoading(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [2, 1], // 1200x600 aspect ratio
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        updatePhotos({ bannerImage: result.assets[0].uri });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle gallery image selection (supports multiple)
+  const handleAddGalleryImage = async () => {
+    const currentCount = photos.galleryImages.length;
+    const remainingSlots = MAX_GALLERY_IMAGES - currentCount;
+
+    if (remainingSlots <= 0) {
+      Alert.alert('Limit Reached', `You can only add up to ${MAX_GALLERY_IMAGES} gallery images.`);
+      return;
+    }
+
+    const hasPermission = await requestPermission();
+    if (!hasPermission) return;
+
+    setIsLoading(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        selectionLimit: remainingSlots,
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newImages = result.assets.map(asset => asset.uri);
+        
+        // Check if adding these would exceed the limit
+        if (currentCount + newImages.length > MAX_GALLERY_IMAGES) {
+          const allowedImages = newImages.slice(0, remainingSlots);
+          updatePhotos({
+            galleryImages: [...photos.galleryImages, ...allowedImages],
+          });
+          Alert.alert(
+            'Some Images Not Added',
+            `Only ${allowedImages.length} of ${newImages.length} images were added due to the ${MAX_GALLERY_IMAGES} image limit.`
+          );
+        } else {
+          updatePhotos({
+            galleryImages: [...photos.galleryImages, ...newImages],
+          });
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select images. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle route map selection
+  const handleSelectRouteMap = async () => {
+    const hasPermission = await requestPermission();
+    if (!hasPermission) return;
+
+    setIsLoading(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        updatePhotos({ routeMapImage: result.assets[0].uri });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const removeGalleryImage = (index: number) => {
@@ -45,6 +151,9 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
     newImages.splice(index, 1);
     updatePhotos({ galleryImages: newImages });
   };
+
+  // Check if banner is missing (for validation display)
+  const isBannerMissing = !photos.bannerImage;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -76,6 +185,7 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
               <TouchableOpacity 
                 style={styles.bannerOverlay}
                 onPress={handleSelectBanner}
+                disabled={isLoading}
               >
                 <Ionicons name="camera" size={24} color="#fff" />
                 <Text style={styles.bannerOverlayText}>Change Banner</Text>
@@ -89,12 +199,18 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
             </View>
           ) : (
             <TouchableOpacity 
-              style={styles.uploadPlaceholder}
+              style={[styles.uploadPlaceholder, isBannerMissing && styles.uploadPlaceholderError]}
               onPress={handleSelectBanner}
+              disabled={isLoading}
             >
-              <Ionicons name="cloud-upload-outline" size={40} color="#999" />
-              <Text style={styles.uploadText}>Tap to upload banner</Text>
+              <Ionicons name="cloud-upload-outline" size={40} color={isBannerMissing ? "#E91E63" : "#999"} />
+              <Text style={[styles.uploadText, isBannerMissing && styles.uploadTextError]}>
+                {isLoading ? 'Opening...' : 'Tap to upload banner'}
+              </Text>
               <Text style={styles.uploadHint}>JPG, PNG up to 5MB</Text>
+              {isBannerMissing && (
+                <Text style={styles.requiredText}>Banner image is required</Text>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -132,9 +248,12 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
               <TouchableOpacity 
                 style={styles.addGalleryButton}
                 onPress={handleAddGalleryImage}
+                disabled={isLoading}
               >
                 <Ionicons name="add" size={32} color="#999" />
-                <Text style={styles.addGalleryText}>Add Photo</Text>
+                <Text style={styles.addGalleryText}>
+                  {isLoading ? 'Loading...' : 'Add Photo'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -163,12 +282,13 @@ export default function Step4EventPhotos({ eventDraft, updateEventDraft }: Props
           ) : (
             <TouchableOpacity 
               style={styles.routeMapPlaceholder}
-              onPress={() => updatePhotos({ 
-                routeMapImage: 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=600' 
-              })}
+              onPress={handleSelectRouteMap}
+              disabled={isLoading}
             >
               <Ionicons name="map-outline" size={36} color="#999" />
-              <Text style={styles.uploadText}>Upload Route Map</Text>
+              <Text style={styles.uploadText}>
+                {isLoading ? 'Opening...' : 'Upload Route Map'}
+              </Text>
               <Text style={styles.uploadHint}>
                 Help participants visualize the course
               </Text>
@@ -312,14 +432,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  uploadPlaceholderError: {
+    borderColor: '#E91E63',
+    backgroundColor: '#FFF5F8',
+  },
   uploadText: {
     fontSize: 15,
     fontWeight: '500',
     color: '#666',
   },
+  uploadTextError: {
+    color: '#E91E63',
+  },
   uploadHint: {
     fontSize: 12,
     color: '#999',
+  },
+  requiredText: {
+    fontSize: 12,
+    color: '#E91E63',
+    fontWeight: '500',
+    marginTop: 4,
   },
   galleryGrid: {
     flexDirection: 'row',

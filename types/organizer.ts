@@ -53,6 +53,8 @@ export interface EventBasics {
   endTime?: string;
   hasBibExpo: boolean;
   bibExpoDate?: string;
+  bibExpoStartTime?: string;
+  bibExpoEndTime?: string;
   bibExpoVenue?: string;
 }
 

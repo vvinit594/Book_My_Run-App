@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Platform,
+  Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { EventDraft, EventType } from '../../../types/organizer';
+
+type PickerField = 'startDate' | 'endDate' | 'startTime' | 'endTime' | 'bibExpoDate' | 'bibExpoStartTime' | 'bibExpoEndTime' | null;
 
 interface Props {
   eventDraft: EventDraft;
@@ -28,13 +34,267 @@ const EVENT_TYPES: EventType[] = [
   'Other',
 ];
 
+// Helper functions
+const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const formatTime = (date: Date): string => {
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+const parseDate = (dateStr: string | undefined): Date => {
+  if (!dateStr) return new Date();
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+const parseTime = (timeStr: string | undefined, baseDate?: Date): Date => {
+  const date = baseDate ? new Date(baseDate) : new Date();
+  if (!timeStr) return date;
+  
+  // Parse time like "05:30 AM" or "17:30"
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3];
+    
+    if (period) {
+      if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+      if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    }
+    
+    date.setHours(hours, minutes, 0, 0);
+  }
+  return date;
+};
+
 export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props) {
   const { basics } = eventDraft;
+  
+  // Picker state
+  const [activeField, setActiveField] = useState<PickerField>(null);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [tempDate, setTempDate] = useState(new Date());
 
   const updateBasics = (updates: Partial<typeof basics>) => {
     updateEventDraft({
       basics: { ...basics, ...updates },
     });
+  };
+
+  // Get minimum date (today for start date, start date for end date)
+  const getMinimumDate = (): Date | undefined => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (activeField === 'startDate' || activeField === 'bibExpoDate') {
+      return today;
+    }
+    if (activeField === 'endDate' && basics.startDate) {
+      return parseDate(basics.startDate);
+    }
+    return today;
+  };
+
+  // Open picker for a specific field
+  const openPicker = (field: PickerField, mode: 'date' | 'time') => {
+    let initialDate = new Date();
+    
+    switch (field) {
+      case 'startDate':
+        initialDate = parseDate(basics.startDate);
+        break;
+      case 'endDate':
+        initialDate = basics.endDate ? parseDate(basics.endDate) : parseDate(basics.startDate);
+        break;
+      case 'startTime':
+        initialDate = parseTime(basics.startTime, parseDate(basics.startDate));
+        break;
+      case 'endTime':
+        initialDate = basics.endTime 
+          ? parseTime(basics.endTime, parseDate(basics.startDate))
+          : parseTime(basics.startTime, parseDate(basics.startDate));
+        break;
+      case 'bibExpoDate':
+        initialDate = basics.bibExpoDate ? parseDate(basics.bibExpoDate) : new Date();
+        break;
+      case 'bibExpoStartTime':
+        initialDate = parseTime(basics.bibExpoStartTime);
+        break;
+      case 'bibExpoEndTime':
+        initialDate = basics.bibExpoEndTime 
+          ? parseTime(basics.bibExpoEndTime)
+          : parseTime(basics.bibExpoStartTime);
+        break;
+    }
+    
+    setTempDate(initialDate);
+    setActiveField(field);
+    setPickerMode(mode);
+  };
+
+  // Handle picker change
+  const handlePickerChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setActiveField(null);
+    }
+    
+    if (event.type === 'dismissed') {
+      setActiveField(null);
+      return;
+    }
+    
+    if (selectedDate) {
+      setTempDate(selectedDate);
+      
+      if (Platform.OS === 'android') {
+        applySelection(selectedDate);
+      }
+    }
+  };
+
+  // Apply selection (for iOS confirm button)
+  const applySelection = (date: Date = tempDate) => {
+    switch (activeField) {
+      case 'startDate': {
+        const formattedDate = formatDate(date);
+        updateBasics({ startDate: formattedDate });
+        
+        // If end date is before new start date, update it
+        if (basics.endDate && parseDate(basics.endDate) < date) {
+          updateBasics({ startDate: formattedDate, endDate: formattedDate });
+        }
+        break;
+      }
+      case 'endDate': {
+        const startDate = parseDate(basics.startDate);
+        if (date < startDate) {
+          Alert.alert('Invalid Date', 'End date cannot be before start date');
+          return;
+        }
+        updateBasics({ endDate: formatDate(date) });
+        break;
+      }
+      case 'startTime': {
+        updateBasics({ startTime: formatTime(date) });
+        break;
+      }
+      case 'endTime': {
+        // Validate end time > start time if same date
+        if (basics.startDate === basics.endDate || !basics.endDate) {
+          const startTime = parseTime(basics.startTime);
+          const endTime = date;
+          
+          if (endTime.getHours() < startTime.getHours() || 
+              (endTime.getHours() === startTime.getHours() && 
+               endTime.getMinutes() <= startTime.getMinutes())) {
+            Alert.alert('Invalid Time', 'End time must be after start time');
+            return;
+          }
+        }
+        updateBasics({ endTime: formatTime(date) });
+        break;
+      }
+      case 'bibExpoDate': {
+        const startDate = parseDate(basics.startDate);
+        if (basics.startDate && date >= startDate) {
+          Alert.alert('Invalid Date', 'BIB Expo date should be before the event start date');
+          return;
+        }
+        updateBasics({ bibExpoDate: formatDate(date) });
+        break;
+      }
+      case 'bibExpoStartTime': {
+        updateBasics({ bibExpoStartTime: formatTime(date) });
+        break;
+      }
+      case 'bibExpoEndTime': {
+        // Validate end time > start time
+        if (basics.bibExpoStartTime) {
+          const startTime = parseTime(basics.bibExpoStartTime);
+          const endTime = date;
+          
+          if (endTime.getHours() < startTime.getHours() || 
+              (endTime.getHours() === startTime.getHours() && 
+               endTime.getMinutes() <= startTime.getMinutes())) {
+            Alert.alert('Invalid Time', 'BIB Expo end time must be after start time');
+            return;
+          }
+        }
+        updateBasics({ bibExpoEndTime: formatTime(date) });
+        break;
+      }
+    }
+    
+    setActiveField(null);
+  };
+
+  // Cancel picker (iOS)
+  const cancelPicker = () => {
+    setActiveField(null);
+  };
+
+  // Render iOS picker modal
+  const renderIOSPicker = () => {
+    if (Platform.OS !== 'ios' || !activeField) return null;
+
+    return (
+      <Modal
+        visible={!!activeField}
+        transparent
+        animationType="slide"
+        onRequestClose={cancelPicker}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={cancelPicker}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>
+                {pickerMode === 'date' ? 'Select Date' : 'Select Time'}
+              </Text>
+              <TouchableOpacity onPress={() => applySelection()}>
+                <Text style={styles.modalDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={tempDate}
+              mode={pickerMode}
+              display="spinner"
+              onChange={handlePickerChange}
+              minimumDate={pickerMode === 'date' ? getMinimumDate() : undefined}
+              textColor="#333"
+            />
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // Render Android picker (inline)
+  const renderAndroidPicker = () => {
+    if (Platform.OS !== 'android' || !activeField) return null;
+
+    return (
+      <DateTimePicker
+        value={tempDate}
+        mode={pickerMode}
+        display="default"
+        onChange={handlePickerChange}
+        minimumDate={pickerMode === 'date' ? getMinimumDate() : undefined}
+      />
+    );
   };
 
   return (
@@ -110,7 +370,10 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
         <View style={styles.dateRow}>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>Start Date *</Text>
-            <TouchableOpacity style={styles.dateInput}>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => openPicker('startDate', 'date')}
+            >
               <Ionicons name="calendar-outline" size={20} color="#666" />
               <Text style={[
                 styles.dateText,
@@ -123,7 +386,10 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
           
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity style={styles.dateInput}>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => openPicker('endDate', 'date')}
+            >
               <Ionicons name="calendar-outline" size={20} color="#666" />
               <Text style={[
                 styles.dateText,
@@ -139,7 +405,10 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
         <View style={styles.dateRow}>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>Start Time *</Text>
-            <TouchableOpacity style={styles.dateInput}>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => openPicker('startTime', 'time')}
+            >
               <Ionicons name="time-outline" size={20} color="#666" />
               <Text style={[
                 styles.dateText,
@@ -152,7 +421,10 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
           
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>End Time</Text>
-            <TouchableOpacity style={styles.dateInput}>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => openPicker('endTime', 'time')}
+            >
               <Ionicons name="time-outline" size={20} color="#666" />
               <Text style={[
                 styles.dateText,
@@ -188,9 +460,13 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
 
         {basics.hasBibExpo && (
           <View style={styles.bibExpoFields}>
+            {/* BIB Expo Date */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>BIB Expo Date</Text>
-              <TouchableOpacity style={styles.dateInput}>
+              <Text style={styles.label}>BIB Expo Date *</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => openPicker('bibExpoDate', 'date')}
+              >
                 <Ionicons name="calendar-outline" size={20} color="#666" />
                 <Text style={[
                   styles.dateText,
@@ -200,7 +476,55 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* BIB Expo Time Row */}
+            <View style={styles.dateRow}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Start Time *</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.dateInput,
+                    !basics.bibExpoStartTime && basics.bibExpoDate && styles.inputWarning,
+                  ]}
+                  onPress={() => openPicker('bibExpoStartTime', 'time')}
+                >
+                  <Ionicons name="time-outline" size={20} color="#666" />
+                  <Text style={[
+                    styles.dateText,
+                    !basics.bibExpoStartTime && styles.datePlaceholder,
+                  ]}>
+                    {basics.bibExpoStartTime || 'Select time'}
+                  </Text>
+                </TouchableOpacity>
+                {!basics.bibExpoStartTime && basics.bibExpoDate && (
+                  <Text style={styles.errorText}>Start time required</Text>
+                )}
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>End Time *</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.dateInput,
+                    !basics.bibExpoEndTime && basics.bibExpoStartTime && styles.inputWarning,
+                  ]}
+                  onPress={() => openPicker('bibExpoEndTime', 'time')}
+                >
+                  <Ionicons name="time-outline" size={20} color="#666" />
+                  <Text style={[
+                    styles.dateText,
+                    !basics.bibExpoEndTime && styles.datePlaceholder,
+                  ]}>
+                    {basics.bibExpoEndTime || 'Select time'}
+                  </Text>
+                </TouchableOpacity>
+                {!basics.bibExpoEndTime && basics.bibExpoStartTime && (
+                  <Text style={styles.errorText}>End time required</Text>
+                )}
+              </View>
+            </View>
             
+            {/* BIB Expo Venue */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>BIB Expo Venue</Text>
               <TextInput
@@ -216,6 +540,10 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
 
         <View style={styles.bottomSpacing} />
       </View>
+
+      {/* Date/Time Pickers */}
+      {renderIOSPicker()}
+      {renderAndroidPicker()}
     </ScrollView>
   );
 }
@@ -380,5 +708,48 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  // iOS Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalCancelText: {
+    fontSize: 17,
+    color: '#666',
+  },
+  modalDoneText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#E91E63',
+  },
+  inputWarning: {
+    borderColor: '#FFA726',
+    borderWidth: 1.5,
+  },
+  errorText: {
+    fontSize: 11,
+    color: '#E91E63',
+    marginTop: 4,
   },
 });
