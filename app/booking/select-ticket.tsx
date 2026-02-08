@@ -5,10 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Image,
+  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import Colors from "../../constants/colors";
 import { Spacing } from "../../constants/spacing";
 import { mockTicketCategories, CONVENIENCE_FEE_PERCENTAGE, GST_PERCENTAGE } from "../../constants/mockBookingData";
@@ -17,6 +22,13 @@ import BookingHeader from "../../components/booking/BookingHeader";
 import TicketCard from "../../components/booking/TicketCard";
 import QuantitySelector from "../../components/booking/QuantitySelector";
 import PriceSummary from "../../components/booking/PriceSummary";
+
+// Certificate file type
+interface CertificateFile {
+  uri: string;
+  name: string;
+  type: 'image' | 'pdf';
+}
 
 export default function SelectTicketScreen() {
   const router = useRouter();
@@ -30,6 +42,86 @@ export default function SelectTicketScreen() {
   const [quantity, setQuantity] = useState(1);
   const [couponCode, setCouponCode] = useState<string | undefined>();
   const [couponDiscount, setCouponDiscount] = useState(0);
+  
+  // Certificate state
+  const [certificateFile, setCertificateFile] = useState<CertificateFile | null>(null);
+  const [certificateLink, setCertificateLink] = useState("");
+
+  // Check if certificate is provided (for status indicator only)
+  const isCertificateProvided = certificateFile !== null || (certificateLink.trim().length > 0 && isValidUrl(certificateLink));
+
+  // URL validation helper
+  function isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Handle image upload
+  const handleUploadImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow access to your photo library to upload certificate.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const fileName = asset.uri.split("/").pop() || "certificate.jpg";
+      setCertificateFile({
+        uri: asset.uri,
+        name: fileName,
+        type: "image",
+      });
+    }
+  };
+
+  // Handle document upload (PDF)
+  const handleUploadDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setCertificateFile({
+          uri: asset.uri,
+          name: asset.name || "certificate.pdf",
+          type: "pdf",
+        });
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to select document. Please try again.");
+    }
+  };
+
+  // Show upload options
+  const handleUploadCertificate = () => {
+    Alert.alert(
+      "Upload Certificate",
+      "Choose upload method",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Photo from Gallery", onPress: handleUploadImage },
+        { text: "PDF Document", onPress: handleUploadDocument },
+      ]
+    );
+  };
+
+  // Remove uploaded file
+  const handleRemoveCertificate = () => {
+    setCertificateFile(null);
+  };
 
   const handleSelectTicket = (ticket: TicketCategory) => {
     setSelectedTicket(ticket);
@@ -92,6 +184,112 @@ export default function SelectTicketScreen() {
             <Text style={styles.eventInfoText}>{eventVenue}</Text>
           </View>
           <Text style={styles.eventTitle}>{eventTitle}</Text>
+        </View>
+
+        {/* Past Running Certificate Section */}
+        <View style={styles.certificateSection}>
+          <View style={styles.certificateHeader}>
+            <View style={styles.certificateTitleRow}>
+              <Ionicons name="document-text" size={20} color={Colors.primary} />
+              <Text style={styles.certificateSectionTitle}>Past Running Certificate</Text>
+              <View style={styles.optionalBadge}>
+                <Text style={styles.optionalText}>Optional</Text>
+              </View>
+            </View>
+            <Text style={styles.certificateHint}>
+              If you have a past running certificate, you may upload it or share a valid link. This is optional and does not affect ticket booking.
+            </Text>
+          </View>
+
+          {/* Certificate Status */}
+          {isCertificateProvided && (
+            <View style={styles.certificateStatus}>
+              <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+              <Text style={styles.certificateStatusText}>Certificate added</Text>
+            </View>
+          )}
+
+          {/* Upload Option */}
+          <View style={styles.uploadSection}>
+            <Text style={styles.uploadLabel}>Option 1: Upload Certificate</Text>
+            
+            {certificateFile ? (
+              <View style={styles.filePreview}>
+                {certificateFile.type === "image" ? (
+                  <Image source={{ uri: certificateFile.uri }} style={styles.fileImage} />
+                ) : (
+                  <View style={styles.pdfPreview}>
+                    <Ionicons name="document" size={32} color={Colors.primary} />
+                  </View>
+                )}
+                <View style={styles.fileInfo}>
+                  <Text style={styles.fileName} numberOfLines={1}>
+                    {certificateFile.name}
+                  </Text>
+                  <Text style={styles.fileType}>
+                    {certificateFile.type === "image" ? "Image" : "PDF Document"}
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.removeFileButton}
+                  onPress={handleRemoveCertificate}
+                >
+                  <Ionicons name="close-circle" size={24} color="#FF5252" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={handleUploadCertificate}
+              >
+                <Ionicons name="cloud-upload-outline" size={24} color={Colors.primary} />
+                <Text style={styles.uploadButtonText}>Upload Certificate</Text>
+                <Text style={styles.uploadFormats}>JPG, PNG, PDF</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Divider */}
+          <View style={styles.orDivider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Link Option */}
+          <View style={styles.linkSection}>
+            <Text style={styles.uploadLabel}>Option 2: Certificate Link</Text>
+            <View style={[
+              styles.linkInputContainer,
+              certificateLink.length > 0 && !isValidUrl(certificateLink) && styles.linkInputError,
+            ]}>
+              <Ionicons 
+                name="link" 
+                size={20} 
+                color={certificateLink.length > 0 && isValidUrl(certificateLink) ? "#4CAF50" : Colors.textSecondary} 
+              />
+              <TextInput
+                style={styles.linkInput}
+                placeholder="Paste certificate URL"
+                placeholderTextColor={Colors.textLight}
+                value={certificateLink}
+                onChangeText={(text) => {
+                  setCertificateLink(text);
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              {certificateLink.length > 0 && (
+                <TouchableOpacity onPress={() => setCertificateLink("")}>
+                  <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {certificateLink.length > 0 && !isValidUrl(certificateLink) && (
+              <Text style={styles.linkErrorText}>Please enter a valid URL</Text>
+            )}
+          </View>
         </View>
 
         {/* Ticket Categories */}
@@ -200,6 +398,171 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginTop: Spacing.xs,
   },
+  // Certificate Section Styles
+  certificateSection: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  certificateHeader: {
+    marginBottom: Spacing.md,
+  },
+  certificateTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  certificateSectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  optionalBadge: {
+    backgroundColor: "#E3F2FD",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  optionalText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#1976D2",
+  },
+  certificateHint: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  certificateStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 6,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  certificateStatusText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#4CAF50",
+  },
+  uploadSection: {
+    marginBottom: Spacing.sm,
+  },
+  uploadLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  uploadButton: {
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    padding: Spacing.md,
+    alignItems: "center",
+    backgroundColor: Colors.background,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.primary,
+    marginTop: Spacing.xs,
+  },
+  uploadFormats: {
+    fontSize: 11,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  filePreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  fileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+  },
+  pdfPreview: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    backgroundColor: "#FCE4EC",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fileInfo: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+  },
+  fileName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.textPrimary,
+  },
+  fileType: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  removeFileButton: {
+    padding: Spacing.xs,
+  },
+  orDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  orText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginHorizontal: Spacing.sm,
+    fontWeight: "500",
+  },
+  linkSection: {},
+  linkInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.xs,
+  },
+  linkInputError: {
+    borderColor: "#FF5252",
+  },
+  linkInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    paddingVertical: 4,
+  },
+  linkErrorText: {
+    fontSize: 11,
+    color: "#FF5252",
+    marginTop: 4,
+  },
+  // Section Styles
   section: {
     marginBottom: Spacing.md,
   },

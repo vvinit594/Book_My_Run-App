@@ -11,7 +11,20 @@ export default function RootLayout() {
           headerShown: false,
           animation: "slide_from_right",
         }}
-      />
+      >
+        {/* Tab Navigation - Main screens */}
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
+        {/* Other Screens - Full screen flows outside tabs */}
+        <Stack.Screen name="event/[id]" />
+        <Stack.Screen name="booking" />
+        <Stack.Screen name="organizer" />
+        <Stack.Screen name="race-results" />
+      </Stack>
     </SafeAreaProvider>
   );
 }
