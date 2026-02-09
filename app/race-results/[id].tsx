@@ -182,11 +182,21 @@ const RankBadge: React.FC<{ rank: number }> = ({ rank }) => {
 };
 
 // Participant Card Component
-const ParticipantCard: React.FC<{ participant: Participant; displayRank: number }> = ({ participant, displayRank }) => {
+interface ParticipantCardProps {
+  participant: Participant;
+  displayRank: number;
+  onPress?: () => void;
+}
+
+const ParticipantCard: React.FC<ParticipantCardProps> = ({ participant, displayRank, onPress }) => {
   const isTopThree = displayRank <= 3;
 
   return (
-    <View style={[styles.participantCard, isTopThree && styles.participantCardHighlight]}>
+    <TouchableOpacity 
+      style={[styles.participantCard, isTopThree && styles.participantCardHighlight]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <RankBadge rank={displayRank} />
       <View style={styles.participantInfo}>
         <View style={styles.participantHeader}>
@@ -214,8 +224,12 @@ const ParticipantCard: React.FC<{ participant: Participant; displayRank: number 
           <Text style={styles.metaDot}>•</Text>
           <Text style={styles.metaText}>{participant.city}</Text>
         </View>
+        <View style={styles.viewDetailsRow}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -500,7 +514,20 @@ export default function RaceResultsDetailScreen() {
         data={filteredParticipants}
         keyExtractor={(item, index) => `${item.bibNumber}-${index}`}
         renderItem={({ item, index }) => (
-          <ParticipantCard participant={item} displayRank={index + 1} />
+          <ParticipantCard 
+            participant={item} 
+            displayRank={index + 1}
+            onPress={() => router.push({
+              pathname: '/race-results/runner/[runnerId]',
+              params: {
+                runnerId: item.bibNumber,
+                runnerData: JSON.stringify(item),
+                eventName: filters.event,
+                eventDate: currentEvent?.date || '',
+                eventYear: filters.year,
+              }
+            })}
+          />
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -966,6 +993,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textLight,
     marginHorizontal: 6,
+  },
+  viewDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginTop: 8,
+    gap: 4,
+  },
+  viewDetailsText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.primary,
   },
   emptyState: {
     alignItems: "center",
