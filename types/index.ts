@@ -33,7 +33,7 @@ export interface EventDetails extends Event {
   aboutEvent: string;
   startTime: string;
   endTime?: string;
-  eventType: "Running" | "Walking" | "Cycling" | "Triathlon";
+  eventType: "Running" | "Walking" | "Cycling" | "Triathlon" | "Swimming" | "Virtual" | "Ultra" | "Duathlon" | "Obstacle" | "Stadium Run";
   isPhysical: boolean;
   gallery: string[];
   routeMaps: RouteMap[];

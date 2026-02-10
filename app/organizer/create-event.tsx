@@ -32,7 +32,7 @@ const initialEventDraft: EventDraft = {
   basics: {
     organizerName: '',
     eventName: '',
-    eventType: 'Marathon',
+    eventType: 'Running',
     startDate: '',
     endDate: '',
     hasBibExpo: false,

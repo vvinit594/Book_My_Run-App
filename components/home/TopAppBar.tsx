@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -40,11 +41,11 @@ export default function TopAppBar({
       <View style={styles.container}>
         {/* Left: Logo */}
         <View style={styles.leftSection}>
-          <Text style={styles.logo}>
-            <Text style={styles.logoBook}>book</Text>
-            <Text style={styles.logoMy}>my</Text>
-            <Text style={styles.logoRun}>run</Text>
-          </Text>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Center: City Selector */}
@@ -98,21 +99,11 @@ const styles = StyleSheet.create({
   leftSection: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 90,
+    minWidth: 110,
   },
-  logo: {
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  logoBook: {
-    color: Colors.textWhite,
-  },
-  logoMy: {
-    color: Colors.primary,
-  },
-  logoRun: {
-    color: Colors.textWhite,
+  logoImage: {
+    width: 120,
+    height: 42,
   },
   citySelector: {
     flexDirection: "row",

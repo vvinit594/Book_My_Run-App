@@ -10,16 +10,16 @@ export interface Organizer {
 }
 
 export type EventType = 
-  | 'Marathon'
-  | 'Half Marathon'
-  | '10K'
-  | '5K'
-  | 'Ultra Marathon'
-  | 'Trail Run'
-  | 'Fun Run'
-  | 'Virtual Run'
-  | 'Relay'
-  | 'Other';
+  | 'Running'
+  | 'Walking'
+  | 'Cycling'
+  | 'Triathlon'
+  | 'Swimming'
+  | 'Virtual'
+  | 'Ultra'
+  | 'Duathlon'
+  | 'Obstacle'
+  | 'Stadium Run';
 
 export interface EventDraft {
   id: string;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -87,7 +86,6 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleEditProfile = () => {
     Alert.alert("Edit Profile", "Profile editing coming soon!");
@@ -249,24 +247,6 @@ export default function ProfileScreen() {
             />
           </View>
         )}
-
-        <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Preferences</Text>
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="notifications-outline" size={20} color={Colors.primary} />
-              </View>
-              <Text style={styles.menuLabel}>Push Notifications</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-              thumbColor={notificationsEnabled ? Colors.primary : Colors.textLight}
-            />
-          </View>
-        </View>
 
         <View style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>Support</Text>
