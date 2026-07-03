@@ -6,7 +6,6 @@ import {
   Pressable,
   TouchableOpacity,
   StatusBar,
-  Platform,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,65 +17,46 @@ const NAVBAR_HEIGHT = 56;
 const MIN_TOUCH_TARGET = 44;
 
 interface TopAppBarProps {
-  city: string;
-  onCityPress: () => void;
-  onSearchPress: () => void;
-  onProfilePress: () => void;
   onListEventPress: () => void;
   onNotificationsPress?: () => void;
 }
 
 export default function TopAppBar({
-  city,
-  onCityPress,
-  onSearchPress,
-  onProfilePress,
   onListEventPress,
   onNotificationsPress,
 }: TopAppBarProps) {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
-      
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+
       <View style={styles.container}>
-        {/* Left: Logo */}
         <View style={styles.leftSection}>
           <Image
-            source={require("../../assets/logo.png")}
+            source={require("../../assets/Bookmyrun_logo.png")}
             style={styles.logoImage}
             resizeMode="contain"
           />
         </View>
 
-        {/* Center: City Selector */}
-        <Pressable 
-          style={styles.citySelector} 
-          onPress={onCityPress}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="location" size={14} color={Colors.primary} />
-          <Text style={styles.cityText}>{city}</Text>
-          <Ionicons name="chevron-down" size={12} color={Colors.textWhite} />
-        </Pressable>
-
-        {/* Right: Actions */}
         <View style={styles.rightSection}>
-          {/* List Your Event Button */}
-          <TouchableOpacity 
-            style={styles.listEventButton} 
+          <TouchableOpacity
+            style={styles.listEventButton}
             onPress={onListEventPress}
             activeOpacity={0.8}
           >
             <Text style={styles.listEventText}>List Your Event</Text>
           </TouchableOpacity>
 
-          {/* Notification Icon */}
-          <Pressable 
-            style={styles.iconButton} 
+          <Pressable
+            style={styles.iconButton}
             onPress={onNotificationsPress}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
-            <Ionicons name="notifications-outline" size={22} color={Colors.textWhite} />
+            <Ionicons
+              name="notifications-outline"
+              size={22}
+              color={Colors.textPrimary}
+            />
           </Pressable>
         </View>
       </View>
@@ -86,45 +66,30 @@ export default function TopAppBar({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.backgroundDark,
+    backgroundColor: Colors.background,
   },
   container: {
     height: NAVBAR_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: Colors.backgroundDark,
+    backgroundColor: Colors.background,
     paddingHorizontal: Spacing.lg,
   },
   leftSection: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 110,
+    marginRight: Spacing.sm,
   },
   logoImage: {
-    width: 120,
-    height: 42,
-  },
-  citySelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: Spacing.md,
-    height: 32,
-    borderRadius: 16,
-    gap: 4,
-  },
-  cityText: {
-    color: Colors.textWhite,
-    fontSize: 13,
-    fontWeight: "600",
-    marginHorizontal: 2,
+    width: 130,
+    height: 36,
   },
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   listEventButton: {
     backgroundColor: Colors.primary,

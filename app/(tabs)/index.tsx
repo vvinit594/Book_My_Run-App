@@ -16,6 +16,7 @@ import {
 } from "../../constants/mockData";
 import {
   TopAppBar,
+  SearchBar,
   AnnouncementBanner,
   FeaturedCarousel,
   CityChips,
@@ -41,18 +42,6 @@ export default function HomeScreen() {
   );
 
   // Handlers
-  const handleCityPress = () => {
-    Alert.alert("City Selector", "City selection bottom sheet coming soon!");
-  };
-
-  const handleSearchPress = () => {
-    Alert.alert("Search", "Search screen coming soon!");
-  };
-
-  const handleProfilePress = () => {
-    router.push("/(tabs)/profile");
-  };
-
   const handleBannerPress = (eventId: string) => {
     router.push(`/event/${eventId}`);
   };
@@ -100,15 +89,13 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top App Bar */}
-      <TopAppBar
-        city={selectedCity}
-        onCityPress={handleCityPress}
-        onSearchPress={handleSearchPress}
-        onProfilePress={handleProfilePress}
-        onListEventPress={handleListEventPress}
-        onNotificationsPress={handleNotificationsPress}
-      />
+      <View style={styles.headerSection}>
+        <TopAppBar
+          onListEventPress={handleListEventPress}
+          onNotificationsPress={handleNotificationsPress}
+        />
+        <SearchBar />
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -186,7 +173,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundDark,
+    backgroundColor: Colors.background,
+  },
+  headerSection: {
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   scrollView: {
     flex: 1,
