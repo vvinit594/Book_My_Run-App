@@ -9,6 +9,102 @@ export interface Organizer {
   isVerified: boolean;
 }
 
+export type OrganizationType = "individual" | "organization";
+export type GstStatus = "registered" | "unregistered";
+export type BankAccountType = "savings" | "current";
+
+export interface BankDetails {
+  accountHolderName: string;
+  accountNumber: string;
+  confirmAccountNumber: string;
+  ifscCode: string;
+  bankName: string;
+  branchName: string;
+  accountType: BankAccountType | "";
+}
+
+export interface SocialMediaLinks {
+  instagram: string;
+  facebook: string;
+  twitter: string;
+  linkedin: string;
+  youtube: string;
+}
+
+export interface OrganizerProfile {
+  logoUri: string | null;
+  organizerName: string;
+  aboutOrganizer: string;
+  websiteUrl: string;
+  organizationType: OrganizationType | "";
+  panNumber: string;
+  permanentAddress: string;
+  billingAddressSameAsPermanent: boolean;
+  billingAddress: string;
+  primaryUserName: string;
+  primaryEmail: string;
+  primaryPhone: string;
+  backupPhone: string;
+  supportEmail: string;
+  emailNotificationForRegistration: boolean;
+  gstStatus: GstStatus | "";
+  gstNumber: string;
+  bankDetails: BankDetails;
+  socialMedia: SocialMediaLinks;
+  completed: boolean;
+  completedAt?: string;
+}
+
+export type OrganizerProfileErrors = Partial<
+  Record<
+    | keyof Omit<OrganizerProfile, "bankDetails" | "socialMedia" | "completed" | "completedAt" | "billingAddressSameAsPermanent" | "emailNotificationForRegistration" | "logoUri">
+    | "bankDetails"
+    | keyof BankDetails,
+    string
+  >
+>;
+
+export const EMPTY_BANK_DETAILS: BankDetails = {
+  accountHolderName: "",
+  accountNumber: "",
+  confirmAccountNumber: "",
+  ifscCode: "",
+  bankName: "",
+  branchName: "",
+  accountType: "",
+};
+
+export const EMPTY_SOCIAL_MEDIA: SocialMediaLinks = {
+  instagram: "",
+  facebook: "",
+  twitter: "",
+  linkedin: "",
+  youtube: "",
+};
+
+export const EMPTY_ORGANIZER_PROFILE: OrganizerProfile = {
+  logoUri: null,
+  organizerName: "",
+  aboutOrganizer: "",
+  websiteUrl: "",
+  organizationType: "",
+  panNumber: "",
+  permanentAddress: "",
+  billingAddressSameAsPermanent: true,
+  billingAddress: "",
+  primaryUserName: "",
+  primaryEmail: "",
+  primaryPhone: "",
+  backupPhone: "",
+  supportEmail: "",
+  emailNotificationForRegistration: true,
+  gstStatus: "",
+  gstNumber: "",
+  bankDetails: { ...EMPTY_BANK_DETAILS },
+  socialMedia: { ...EMPTY_SOCIAL_MEDIA },
+  completed: false,
+};
+
 export type EventType = 
   | 'Running'
   | 'Walking'

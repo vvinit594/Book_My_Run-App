@@ -25,6 +25,7 @@ import {
   LoadMoreButton,
 } from "../../components/home";
 import { City } from "../../types";
+import { navigateToOrganizerFlow } from "../../utils/organizerNavigation";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function HomeScreen() {
   };
 
   const handleListEventPress = () => {
-    router.push("/organizer/dashboard");
+    void navigateToOrganizerFlow(router);
   };
 
   const handleNotificationsPress = () => {

@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
+import { navigateToOrganizerFlow } from "../../utils/organizerNavigation";
 
 // Mock user data
 const mockUser = {
@@ -96,7 +97,7 @@ export default function ProfileScreen() {
   };
 
   const handleDraftEvents = () => {
-    router.push("/organizer/dashboard");
+    void navigateToOrganizerFlow(router);
   };
 
   const handlePaymentMethods = () => {

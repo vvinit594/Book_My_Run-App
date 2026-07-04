@@ -10,6 +10,7 @@ export default function OrganizerLayout() {
         animation: "slide_from_right",
       }}
     >
+      <Stack.Screen name="profile" />
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="create-event" />
     </Stack>
