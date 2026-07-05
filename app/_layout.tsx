@@ -25,6 +25,7 @@ export default function RootLayout() {
           <Stack.Screen name="organizer" />
           <Stack.Screen name="race-results" />
           <Stack.Screen name="auth" />
+          <Stack.Screen name="profile" />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>

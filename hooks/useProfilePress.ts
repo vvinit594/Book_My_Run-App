@@ -10,7 +10,7 @@ export function useProfilePress(onOpenAuth: () => void) {
     if (!isHydrated) return;
 
     if (isAuthenticated) {
-      router.push("/(tabs)/profile");
+      router.push("/profile");
       return;
     }
 
