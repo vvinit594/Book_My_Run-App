@@ -24,25 +24,28 @@ import {
   SectionHeader,
   LoadMoreButton,
 } from "../../components/home";
+import { AuthenticationModal } from "../../components/auth";
 import { City } from "../../types";
 import { navigateToOrganizerFlow } from "../../utils/organizerNavigation";
+import { useProfilePress } from "../../hooks/useProfilePress";
 
 export default function HomeScreen() {
   const router = useRouter();
-  
-  // State
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const { handleProfilePress, isAuthenticated } = useProfilePress(() =>
+    setAuthModalVisible(true)
+  );
+
   const [selectedCity, setSelectedCity] = useState("Mumbai");
   const [showAnnouncement, setShowAnnouncement] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Filter events by selected city (or show all if "All Cities")
   const filteredEvents = mockEvents.filter(
     (event) =>
       selectedCity === "All Cities" || event.location.city === selectedCity
   );
 
-  // Handlers
   const handleBannerPress = (eventId: string) => {
     router.push(`/event/${eventId}`);
   };
@@ -73,7 +76,6 @@ export default function HomeScreen() {
 
   const handleLoadMore = () => {
     setLoadingMore(true);
-    // Simulate API call
     setTimeout(() => {
       setLoadingMore(false);
       Alert.alert("Load More", "More events would load here from API");
@@ -82,7 +84,6 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate API refresh
     setTimeout(() => {
       setRefreshing(false);
     }, 1500);
@@ -94,6 +95,8 @@ export default function HomeScreen() {
         <TopAppBar
           onListEventPress={handleListEventPress}
           onNotificationsPress={handleNotificationsPress}
+          onProfilePress={handleProfilePress}
+          isLoggedIn={isAuthenticated}
         />
         <SearchBar />
       </View>
@@ -110,7 +113,6 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Announcement Banner */}
         {showAnnouncement && (
           <AnnouncementBanner
             announcement={mockAnnouncement}
@@ -119,20 +121,17 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Featured Events Carousel */}
         <FeaturedCarousel
           banners={mockFeaturedBanners}
           onBannerPress={handleBannerPress}
         />
 
-        {/* City Quick Chips */}
         <CityChips
           cities={mockCities}
           selectedCity={selectedCity}
           onCitySelect={handleCitySelect}
         />
 
-        {/* Popular Events Section */}
         <SectionHeader
           title="Popular Events Near You"
           icon="🔥"
@@ -140,7 +139,6 @@ export default function HomeScreen() {
           onFilterPress={handleFilterPress}
         />
 
-        {/* Event Cards */}
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
             <EventCard
@@ -159,14 +157,17 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Load More Button */}
         {filteredEvents.length > 0 && (
           <LoadMoreButton onPress={handleLoadMore} loading={loadingMore} />
         )}
 
-        {/* Bottom Spacing for Tab Bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      <AuthenticationModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+      />
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { navigateToOrganizerFlow } from "../../utils/organizerNavigation";
+import { useAuth } from "../../store/authStore";
 
 // Mock user data
 const mockUser = {
@@ -87,6 +88,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   const handleEditProfile = () => {
     Alert.alert("Edit Profile", "Profile editing coming soon!");
@@ -113,7 +115,9 @@ export default function ProfileScreen() {
         {
           text: "Logout",
           style: "destructive",
-          onPress: () => Alert.alert("Logged Out", "You have been logged out."),
+          onPress: () => {
+            void logout().then(() => router.replace("/(tabs)"));
+          },
         },
       ]
     );
@@ -131,7 +135,11 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -145,8 +153,8 @@ export default function ProfileScreen() {
             style={styles.avatar}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{mockUser.name}</Text>
-            <Text style={styles.userEmail}>{mockUser.email}</Text>
+            <Text style={styles.userName}>{user?.name ?? mockUser.name}</Text>
+            <Text style={styles.userEmail}>{user?.email ?? mockUser.email}</Text>
             {mockUser.isOrganizer && (
               <View style={styles.organizerBadge}>
                 <Ionicons name="ribbon" size={12} color={Colors.textWhite} />
@@ -282,14 +290,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: Colors.backgroundDark,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: Colors.textWhite,
+  },
+  headerSpacer: {
+    width: 40,
   },
   scrollView: {
     flex: 1,

@@ -19,11 +19,15 @@ const MIN_TOUCH_TARGET = 44;
 interface TopAppBarProps {
   onListEventPress: () => void;
   onNotificationsPress?: () => void;
+  onProfilePress?: () => void;
+  isLoggedIn?: boolean;
 }
 
 export default function TopAppBar({
   onListEventPress,
   onNotificationsPress,
+  onProfilePress,
+  isLoggedIn = false,
 }: TopAppBarProps) {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -56,6 +60,18 @@ export default function TopAppBar({
               name="notifications-outline"
               size={22}
               color={Colors.textPrimary}
+            />
+          </Pressable>
+
+          <Pressable
+            style={styles.iconButton}
+            onPress={onProfilePress}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Ionicons
+              name={isLoggedIn ? "person-circle" : "person-circle-outline"}
+              size={24}
+              color={isLoggedIn ? Colors.primary : Colors.textPrimary}
             />
           </Pressable>
         </View>
