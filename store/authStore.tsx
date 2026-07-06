@@ -7,6 +7,8 @@ import React, {
   useState,
 } from "react";
 import * as authService from "../services/authService";
+import { clearOrganizerProfile } from "../utils/organizerProfileStorage";
+import { clearPostAuthRedirect } from "../utils/navigationIntent";
 import {
   AuthContextValue,
   AuthState,
@@ -102,6 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await authService.logout();
+    await clearOrganizerProfile();
+    clearPostAuthRedirect();
     setState({
       isAuthenticated: false,
       isHydrated: true,

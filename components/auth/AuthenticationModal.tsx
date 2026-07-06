@@ -18,6 +18,10 @@ import SignupForm from "./SignupForm";
 import Colors from "../../constants/colors";
 import { BorderRadius, FontSize, Spacing } from "../../constants/spacing";
 import { AuthTab } from "../../types/auth";
+import {
+  clearPostAuthRedirect,
+  consumePostAuthRedirect,
+} from "../../utils/navigationIntent";
 
 interface AuthenticationModalProps {
   visible: boolean;
@@ -31,8 +35,17 @@ export default function AuthenticationModal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
 
-  const handleLoginSuccess = () => {
+  const handleClose = () => {
+    clearPostAuthRedirect();
     onClose();
+  };
+
+  const handleLoginSuccess = () => {
+    const redirect = consumePostAuthRedirect();
+    onClose();
+    if (redirect) {
+      router.push(redirect as "/organizer/profile");
+    }
   };
 
   const handleSendOTP = () => {
@@ -45,7 +58,7 @@ export default function AuthenticationModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
         style={styles.flex}
@@ -53,7 +66,7 @@ export default function AuthenticationModal({
       >
         <View style={styles.container}>
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <TouchableOpacity onPress={handleClose} hitSlop={8}>
               <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>

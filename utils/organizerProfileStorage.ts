@@ -31,22 +31,14 @@ export async function getOrganizerProfile(): Promise<OrganizerProfile> {
 }
 
 export async function isOrganizerProfileCompleted(): Promise<boolean> {
-  const profile = await getOrganizerProfile();
-  return profile.completed === true;
+  // Frontend-only: profile completion is not persisted until backend integration.
+  return false;
 }
 
 export async function saveOrganizerProfile(
-  profile: OrganizerProfile
+  _profile: OrganizerProfile
 ): Promise<void> {
-  const payload: OrganizerProfile = {
-    ...profile,
-    completed: true,
-    completedAt: new Date().toISOString(),
-  };
-  await AsyncStorage.setItem(
-    ORGANIZER_PROFILE_STORAGE_KEY,
-    JSON.stringify(payload)
-  );
+  // Frontend-only: no profile persistence until backend integration.
 }
 
 export async function clearOrganizerProfile(): Promise<void> {

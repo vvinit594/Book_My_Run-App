@@ -10,9 +10,19 @@ import { useRouter } from "expo-router";
 import { AuthHeader, PasswordCreation } from "../../components/auth";
 import Colors from "../../constants/colors";
 import { Spacing } from "../../constants/spacing";
+import { consumePostAuthRedirect } from "../../utils/navigationIntent";
 
 export default function CreatePasswordScreen() {
   const router = useRouter();
+
+  const handleSuccess = () => {
+    const redirect = consumePostAuthRedirect();
+    if (redirect) {
+      router.replace(redirect as "/organizer/profile");
+      return;
+    }
+    router.replace("/(tabs)");
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -31,7 +41,7 @@ export default function CreatePasswordScreen() {
             showBack
             onBack={() => router.back()}
           />
-          <PasswordCreation onSuccess={() => router.replace("/(tabs)")} />
+          <PasswordCreation onSuccess={handleSuccess} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

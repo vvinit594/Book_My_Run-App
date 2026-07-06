@@ -26,7 +26,11 @@ import {
 } from "../../components/home";
 import { AuthenticationModal } from "../../components/auth";
 import { City } from "../../types";
-import { navigateToOrganizerFlow } from "../../utils/organizerNavigation";
+import { openOrganizerProfile } from "../../utils/organizerNavigation";
+import {
+  ORGANIZER_PROFILE_ROUTE,
+  setPostAuthRedirect,
+} from "../../utils/navigationIntent";
 import { useProfilePress } from "../../hooks/useProfilePress";
 
 export default function HomeScreen() {
@@ -67,7 +71,13 @@ export default function HomeScreen() {
   };
 
   const handleListEventPress = () => {
-    void navigateToOrganizerFlow(router);
+    if (!isAuthenticated) {
+      setPostAuthRedirect(ORGANIZER_PROFILE_ROUTE);
+      setAuthModalVisible(true);
+      return;
+    }
+
+    openOrganizerProfile(router);
   };
 
   const handleNotificationsPress = () => {
@@ -166,7 +176,9 @@ export default function HomeScreen() {
 
       <AuthenticationModal
         visible={authModalVisible}
-        onClose={() => setAuthModalVisible(false)}
+        onClose={() => {
+          setAuthModalVisible(false);
+        }}
       />
     </View>
   );

@@ -1,20 +1,11 @@
-import { isOrganizerProfileCompleted } from "./organizerProfileStorage";
-
 type OrganizerRouter = {
-  push: (href: "/organizer/dashboard" | "/organizer/profile") => void;
+  push: (href: "/organizer/profile") => void;
 };
 
 /**
- * Routes organizers to profile onboarding when incomplete,
- * otherwise opens the dashboard directly.
+ * Opens the Organizer Profile onboarding screen.
+ * Profile completion is not persisted until backend integration.
  */
-export async function navigateToOrganizerFlow(
-  router: OrganizerRouter
-): Promise<void> {
-  const completed = await isOrganizerProfileCompleted();
-  if (completed) {
-    router.push("/organizer/dashboard");
-    return;
-  }
+export function openOrganizerProfile(router: OrganizerRouter): void {
   router.push("/organizer/profile");
 }

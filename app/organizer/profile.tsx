@@ -90,24 +90,7 @@ export default function OrganizerProfileScreen() {
 
     setSaving(true);
     try {
-      const payload: OrganizerProfile = {
-        ...profile,
-        organizerName: profile.organizerName.trim(),
-        panNumber: profile.panNumber.trim().toUpperCase(),
-        permanentAddress: profile.permanentAddress.trim(),
-        billingAddress: profile.billingAddressSameAsPermanent
-          ? profile.permanentAddress.trim()
-          : profile.billingAddress.trim(),
-        primaryUserName: profile.primaryUserName.trim(),
-        primaryEmail: profile.primaryEmail.trim().toLowerCase(),
-        primaryPhone: profile.primaryPhone.trim(),
-        backupPhone: profile.backupPhone.trim(),
-        supportEmail: profile.supportEmail.trim().toLowerCase(),
-        websiteUrl: profile.websiteUrl.trim(),
-        gstNumber: profile.gstNumber.trim().toUpperCase(),
-      };
-
-      await saveOrganizerProfile(payload);
+      await saveOrganizerProfile(profile);
       router.replace("/organizer/dashboard");
     } catch {
       Alert.alert(
