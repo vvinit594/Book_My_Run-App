@@ -1,45 +1,17 @@
 {
-  "name": "bookmyrun-app",
+  "name": "bookmyrun-monorepo",
+  "private": true,
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "prestart:phone": "node scripts/free-metro-port.mjs",
-    "prestart:phone:tunnel": "node scripts/free-metro-port.mjs",
-    "prestart:phone:usb": "node scripts/free-metro-port.mjs",
-    "start": "expo start --clear",
-    "start:phone": "node scripts/start-phone.mjs",
-    "start:phone:tunnel": "expo start --tunnel --clear",
-    "start:phone:usb": "node scripts/free-metro-port.mjs && adb -d reverse tcp:8081 tcp:8081 && expo start --localhost --clear",
-    "start:phone:lan": "expo start --lan --clear",
-    "phone:check": "node scripts/phone-setup-check.mjs",
-    "android": "expo start --android --clear",
-    "ios": "expo start --ios --clear",
-    "web": "expo start --web --clear"
+    "frontend": "npm --workspace frontend start",
+    "backend": "npm --workspace backend run dev",
+    "dev": "concurrently -n frontend,backend -c magenta,cyan \"npm run frontend\" \"npm run backend\""
   },
-  "dependencies": {
-    "@expo/metro-runtime": "~6.1.2",
-    "@expo/ngrok": "^4.1.3",
-    "@expo/vector-icons": "^15.0.3",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-community/datetimepicker": "8.4.4",
-    "@types/react": "~19.1.10",
-    "expo": "~54.0.35",
-    "expo-clipboard": "~8.0.8",
-    "expo-constants": "~18.0.13",
-    "expo-document-picker": "~14.0.8",
-    "expo-image-picker": "~17.0.11",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-linking": "~8.0.12",
-    "expo-router": "~6.0.24",
-    "expo-splash-screen": "~31.0.13",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.0",
-    "typescript": "~5.9.2"
-  },
-  "private": true
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
 }
