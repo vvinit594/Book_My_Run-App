@@ -1,6 +1,5 @@
 import { AuthUser } from "../types/auth";
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import * as authService from "./auth.service";
 
 export interface UserProfile extends AuthUser {
   isOrganizer: boolean;
@@ -9,31 +8,25 @@ export interface UserProfile extends AuthUser {
 export async function getUserProfile(
   user: AuthUser | null
 ): Promise<UserProfile | null> {
-  await delay(200);
   if (!user) return null;
 
+  const fresh = (await authService.getProfile()) ?? user;
+  const isOrganizer = Boolean(fresh.organizerProfile?.isProfileCompleted);
+
   return {
-    ...user,
-    isOrganizer: true,
+    ...fresh,
+    isOrganizer,
   };
 }
 
-export async function getOrganizerProfile(): Promise<null> {
-  await delay(200);
-  return null;
-}
-
 export async function getOrganizerEvents(): Promise<[]> {
-  await delay(200);
   return [];
 }
 
 export async function getFinancialData(): Promise<null> {
-  await delay(200);
   return null;
 }
 
 export async function getRegisteredEvents(): Promise<[]> {
-  await delay(200);
   return [];
 }

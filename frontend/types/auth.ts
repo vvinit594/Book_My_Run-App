@@ -1,11 +1,23 @@
 export type AuthTab = "login" | "signup";
 
+export type UserRole = "USER" | "ORGANIZER" | "ADMIN";
+
+export interface OrganizerProfileSummary {
+  id?: string;
+  organizerName?: string;
+  isProfileCompleted: boolean;
+  completedAt?: string | null;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   phone: string;
   avatar?: string;
+  role?: UserRole;
+  isVerified?: boolean;
+  organizerProfile?: OrganizerProfileSummary;
 }
 
 export interface PendingSignup {
@@ -37,6 +49,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isHydrated: boolean;
   user: AuthUser | null;
+  token: string | null;
   pendingSignup: PendingSignup | null;
 }
 
@@ -47,4 +60,6 @@ export interface AuthContextValue extends AuthState {
   createPassword: (payload: CreatePasswordPayload) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearPendingSignup: () => void;
+  refreshUser: () => Promise<void>;
+  isOrganizerProfileCompleted: boolean;
 }

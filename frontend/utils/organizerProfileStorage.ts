@@ -4,8 +4,14 @@ import {
   EMPTY_ORGANIZER_PROFILE,
   OrganizerProfile,
 } from "../types/organizer";
+import * as organizerService from "../services/organizer.service";
 
 export async function getOrganizerProfile(): Promise<OrganizerProfile> {
+  const result = await organizerService.getOrganizerProfile();
+  if (result.success && result.profile) {
+    return result.profile;
+  }
+
   try {
     const raw = await AsyncStorage.getItem(ORGANIZER_PROFILE_STORAGE_KEY);
     if (!raw) {
@@ -31,14 +37,23 @@ export async function getOrganizerProfile(): Promise<OrganizerProfile> {
 }
 
 export async function isOrganizerProfileCompleted(): Promise<boolean> {
-  // Frontend-only: profile completion is not persisted until backend integration.
-  return false;
+  const result = await organizerService.getOrganizerProfile();
+  return Boolean(result.isProfileCompleted);
 }
 
 export async function saveOrganizerProfile(
-  _profile: OrganizerProfile
+  profile: OrganizerProfile
 ): Promise<void> {
-  // Frontend-only: no profile persistence until backend integration.
+  const result = await organizerService.saveOrganizerProfile(profile);
+  if (!result.success) {
+    throw new Error(result.error || "Failed to save organizer profile");
+  }
+
+  // Keep a local cache for offline form restore
+  await AsyncStorage.setItem(
+    ORGANIZER_PROFILE_STORAGE_KEY,
+    JSON.stringify(result.profile ?? { ...profile, completed: true })
+  );
 }
 
 export async function clearOrganizerProfile(): Promise<void> {

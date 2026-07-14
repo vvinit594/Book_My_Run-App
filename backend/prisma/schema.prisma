@@ -7,3 +7,118 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  PASSWORD_RESET
+}
+
+enum OrganizationType {
+  individual
+  organization
+}
+
+enum GstStatus {
+  registered
+  unregistered
+}
+
+enum BankAccountType {
+  savings
+  current
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  phone        String   @unique
+  passwordHash String?
+  role         UserRole @default(USER)
+  isVerified   Boolean  @default(false)
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizerProfile OrganizerProfile?
+  otpVerifications OtpVerification[]
+  refreshTokens    RefreshToken[]
+}
+
+model OrganizerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  logoUrl         String?
+  organizerName   String
+  aboutOrganizer  String?
+  websiteUrl      String?
+  organizationType OrganizationType?
+  panNumber       String?
+  permanentAddress String?
+  billingAddressSameAsPermanent Boolean @default(true)
+  billingAddress  String?
+
+  primaryUserName String?
+  primaryEmail    String?
+  primaryPhone    String?
+  backupPhone     String?
+  supportEmail    String?
+  emailNotificationForRegistration Boolean @default(true)
+
+  gstStatus GstStatus?
+  gstNumber String?
+
+  bankAccountHolderName String?
+  bankAccountNumber     String?
+  bankIfscCode          String?
+  bankName              String?
+  bankBranchName        String?
+  bankAccountType       BankAccountType?
+
+  instagram String?
+  facebook  String?
+  twitter   String?
+  linkedin  String?
+  youtube   String?
+
+  isProfileCompleted Boolean   @default(false)
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model OtpVerification {
+  id         String     @id @default(cuid())
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email      String?
+  phone      String?
+  otpCode    String
+  purpose    OtpPurpose
+  channel    String
+  isVerified Boolean    @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime   @default(now())
+
+  @@index([email, purpose])
+  @@index([phone, purpose])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

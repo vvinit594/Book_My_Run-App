@@ -27,7 +27,8 @@ import { getUserProfile, UserProfile } from "../../services/profileService";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isOrganizerProfileCompleted, refreshUser } =
+    useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -37,8 +38,26 @@ export default function ProfileScreen() {
       return;
     }
 
+    let mounted = true;
+    void (async () => {
+      await refreshUser();
+      if (!mounted) return;
+    })();
+
+    return () => {
+      mounted = false;
+    };
+    // Refresh once when opening Profile so organizer completion stays in sync
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     void getUserProfile(user).then(setProfile);
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user]);
+
+  const showOrganizingEvents =
+    isOrganizerProfileCompleted || Boolean(profile?.isOrganizer);
 
   const handleLogout = useCallback(() => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -79,21 +98,23 @@ export default function ProfileScreen() {
           name={displayName}
           email={displayEmail}
           avatarUri={profile?.avatar ?? user?.avatar}
-          isOrganizer={profile?.isOrganizer ?? true}
+          isOrganizer={showOrganizingEvents}
         />
 
-        <ProfileSection title="Organizing Events">
-          {ORGANIZING_EVENTS_MENU.map((item, index) => (
-            <ProfileMenuItem
-              key={item.id}
-              title={item.title}
-              description={item.description}
-              icon={item.icon}
-              route={item.route}
-              isLast={index === ORGANIZING_EVENTS_MENU.length - 1}
-            />
-          ))}
-        </ProfileSection>
+        {showOrganizingEvents ? (
+          <ProfileSection title="Organizing Events">
+            {ORGANIZING_EVENTS_MENU.map((item, index) => (
+              <ProfileMenuItem
+                key={item.id}
+                title={item.title}
+                description={item.description}
+                icon={item.icon}
+                route={item.route}
+                isLast={index === ORGANIZING_EVENTS_MENU.length - 1}
+              />
+            ))}
+          </ProfileSection>
+        ) : null}
 
         <ProfileSection title="Attending Events">
           {ATTENDING_EVENTS_MENU.map((item, index) => (

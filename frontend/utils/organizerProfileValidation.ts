@@ -44,17 +44,7 @@ export function validateOrganizerProfile(
     errors.primaryUserName = "Primary user name is required";
   }
 
-  if (!profile.primaryEmail.trim()) {
-    errors.primaryEmail = "Primary email is required";
-  } else if (!EMAIL_REGEX.test(profile.primaryEmail.trim())) {
-    errors.primaryEmail = "Enter a valid email address";
-  }
-
-  if (!profile.primaryPhone.trim()) {
-    errors.primaryPhone = "Primary phone number is required";
-  } else if (!PHONE_REGEX.test(profile.primaryPhone.trim())) {
-    errors.primaryPhone = "Enter a valid 10-digit mobile number";
-  }
+  // primaryEmail / primaryPhone are owned by User (auth) and validated via session
 
   if (
     profile.backupPhone.trim() &&

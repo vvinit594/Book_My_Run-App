@@ -6,7 +6,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import * as authService from "../services/authService";
+import * as authService from "../services/auth.service";
+import { getAccessToken } from "../services/apiClient";
 import { clearOrganizerProfile } from "../utils/organizerProfileStorage";
 import { clearPostAuthRedirect } from "../utils/navigationIntent";
 import {
@@ -22,6 +23,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isHydrated: false,
   user: null,
+  token: null,
   pendingSignup: null,
 };
 
@@ -30,16 +32,44 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState);
 
+  const refreshUser = useCallback(async () => {
+    const user = await authService.getProfile();
+    const token = await getAccessToken();
+    setState((prev) => ({
+      ...prev,
+      isAuthenticated: Boolean(user && token),
+      user,
+      token,
+    }));
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
     async function hydrate() {
-      const user = await authService.getStoredSession();
+      const token = await getAccessToken();
+      const stored = await authService.getStoredSession();
+
       if (!mounted) return;
+
+      if (token && stored) {
+        const user = (await authService.getProfile()) ?? stored;
+        if (!mounted) return;
+        setState({
+          isAuthenticated: true,
+          isHydrated: true,
+          user,
+          token,
+          pendingSignup: null,
+        });
+        return;
+      }
+
       setState({
-        isAuthenticated: Boolean(user),
+        isAuthenticated: false,
         isHydrated: true,
-        user,
+        user: null,
+        token: null,
         pendingSignup: null,
       });
     }
@@ -52,11 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     const result = await authService.login(credentials);
-    if (result.success && result.user) {
+    if (result.success && result.user && result.token) {
       setState((prev) => ({
         ...prev,
         isAuthenticated: true,
         user: result.user!,
+        token: result.token!,
         pendingSignup: null,
       }));
       return { success: true };
@@ -76,10 +107,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: false, error: result.error };
   }, []);
 
-  const verifyOTP = useCallback(async (payload: OTPVerificationPayload) => {
-    const result = await authService.verifyOTP(payload);
-    return { success: result.success, error: result.error };
-  }, []);
+  const verifyOTP = useCallback(
+    async (payload: OTPVerificationPayload) => {
+      if (!state.pendingSignup) {
+        return { success: false, error: "Signup session expired. Please try again." };
+      }
+      const result = await authService.verifyOTP({
+        ...payload,
+        ...state.pendingSignup,
+      });
+      return { success: result.success, error: result.error };
+    },
+    [state.pendingSignup]
+  );
 
   const createPassword = useCallback(
     async (payload: CreatePasswordPayload) => {
@@ -88,11 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await authService.createPassword(state.pendingSignup, payload);
-      if (result.success && result.user) {
+      if (result.success && result.user && result.token) {
         setState({
           isAuthenticated: true,
           isHydrated: true,
           user: result.user,
+          token: result.token,
           pendingSignup: null,
         });
         return { success: true };
@@ -110,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: false,
       isHydrated: true,
       user: null,
+      token: null,
       pendingSignup: null,
     });
   }, []);
@@ -117,6 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearPendingSignup = useCallback(() => {
     setState((prev) => ({ ...prev, pendingSignup: null }));
   }, []);
+
+  const isOrganizerProfileCompleted = Boolean(
+    state.user?.organizerProfile?.isProfileCompleted
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -127,6 +173,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createPassword,
       logout,
       clearPendingSignup,
+      refreshUser,
+      isOrganizerProfileCompleted,
     }),
     [
       state,
@@ -136,6 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createPassword,
       logout,
       clearPendingSignup,
+      refreshUser,
+      isOrganizerProfileCompleted,
     ]
   );
 

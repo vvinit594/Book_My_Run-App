@@ -18,6 +18,7 @@ interface ProfileInputProps extends Omit<TextInputProps, "style"> {
   error?: string;
   verified?: boolean;
   showInfoIcon?: boolean;
+  editable?: boolean;
 }
 
 export default function ProfileInput({
@@ -28,6 +29,7 @@ export default function ProfileInput({
   error,
   verified = false,
   showInfoIcon = false,
+  editable = true,
   ...textInputProps
 }: ProfileInputProps) {
   return (
@@ -52,10 +54,16 @@ export default function ProfileInput({
         ) : null}
       </View>
       <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
+        style={[
+          styles.input,
+          !editable ? styles.inputDisabled : null,
+          error ? styles.inputError : null,
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor={Colors.textLight}
+        editable={editable}
+        selectTextOnFocus={editable}
         {...textInputProps}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -102,6 +110,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     minHeight: 48,
+  },
+  inputDisabled: {
+    backgroundColor: "#EEEEEE",
+    color: Colors.textSecondary,
   },
   inputError: {
     borderColor: Colors.error,

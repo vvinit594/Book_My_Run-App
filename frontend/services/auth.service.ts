@@ -3,7 +3,6 @@ import {
   AUTH_STORAGE_KEY,
   EMAIL_REGEX,
   MIN_PASSWORD_LENGTH,
-  MOCK_VALID_OTP,
   PHONE_REGEX,
 } from "../constants/auth";
 import {
@@ -14,8 +13,22 @@ import {
   PendingSignup,
   SignupCredentials,
 } from "../types/auth";
+import { ApiError, apiRequest, getAccessToken, setAccessToken } from "./apiClient";
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type AuthSessionResponse = {
+  token: string;
+  user: AuthUser;
+};
+
+function mapError(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export async function getStoredSession(): Promise<AuthUser | null> {
   try {
@@ -27,19 +40,21 @@ export async function getStoredSession(): Promise<AuthUser | null> {
   }
 }
 
-export async function persistSession(user: AuthUser): Promise<void> {
+export async function persistSession(user: AuthUser, token?: string): Promise<void> {
   await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  if (token) {
+    await setAccessToken(token);
+  }
 }
 
 export async function clearSession(): Promise<void> {
   await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+  await setAccessToken(null);
 }
 
 export async function login(
   credentials: LoginCredentials
-): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
-  await delay(600);
-
+): Promise<{ success: boolean; user?: AuthUser; token?: string; error?: string }> {
   const identifier = credentials.identifier.trim();
   const password = credentials.password.trim();
 
@@ -61,24 +76,21 @@ export async function login(
     return { success: false, error: "Enter a valid email or mobile number" };
   }
 
-  const user: AuthUser = {
-    id: "mock-user-1",
-    name: isEmail ? identifier.split("@")[0] : "BookMyRun User",
-    email: isEmail ? identifier : "user@bookmyrun.com",
-    phone: isPhone
-      ? identifier.replace(/\D/g, "").slice(-10)
-      : "9876543210",
-  };
-
-  await persistSession(user);
-  return { success: true, user };
+  try {
+    const data = await apiRequest<AuthSessionResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
+    });
+    await persistSession(data.user, data.token);
+    return { success: true, user: data.user, token: data.token };
+  } catch (error) {
+    return { success: false, error: mapError(error, "Login failed") };
+  }
 }
 
 export async function sendOTP(
   credentials: SignupCredentials
 ): Promise<{ success: boolean; pending?: PendingSignup; error?: string }> {
-  await delay(800);
-
   const mobile = credentials.mobile.trim();
   const email = credentials.email.trim().toLowerCase();
 
@@ -94,14 +106,20 @@ export async function sendOTP(
     return { success: false, error: "Enter a valid email address" };
   }
 
-  return { success: true, pending: { mobile, email } };
+  try {
+    await apiRequest("/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ mobile, email }),
+    });
+    return { success: true, pending: { mobile, email } };
+  } catch (error) {
+    return { success: false, error: mapError(error, "Failed to send OTP") };
+  }
 }
 
 export async function verifyOTP(
-  payload: OTPVerificationPayload
+  payload: OTPVerificationPayload & PendingSignup
 ): Promise<{ success: boolean; error?: string }> {
-  await delay(700);
-
   const mobileOtp = payload.mobileOtp.trim();
   const emailOtp = payload.emailOtp.trim();
 
@@ -109,19 +127,26 @@ export async function verifyOTP(
     return { success: false, error: "Please enter 6-digit OTP for both fields" };
   }
 
-  if (mobileOtp !== MOCK_VALID_OTP || emailOtp !== MOCK_VALID_OTP) {
-    return { success: false, error: "Invalid OTP" };
+  try {
+    await apiRequest("/auth/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        mobile: payload.mobile,
+        email: payload.email,
+        mobileOtp,
+        emailOtp,
+      }),
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: mapError(error, "OTP verification failed") };
   }
-
-  return { success: true };
 }
 
 export async function createPassword(
   pending: PendingSignup,
   payload: CreatePasswordPayload
-): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
-  await delay(700);
-
+): Promise<{ success: boolean; user?: AuthUser; token?: string; error?: string }> {
   const password = payload.password.trim();
   const confirmPassword = payload.confirmPassword.trim();
 
@@ -136,23 +161,46 @@ export async function createPassword(
     return { success: false, error: "Passwords do not match" };
   }
 
-  const user: AuthUser = {
-    id: `mock-user-${Date.now()}`,
-    name: pending.email.split("@")[0],
-    email: pending.email,
-    phone: pending.mobile,
-  };
-
-  await persistSession(user);
-  return { success: true, user };
+  try {
+    const data = await apiRequest<AuthSessionResponse>("/auth/create-password", {
+      method: "POST",
+      body: JSON.stringify({
+        mobile: pending.mobile,
+        email: pending.email,
+        password,
+        confirmPassword,
+      }),
+    });
+    await persistSession(data.user, data.token);
+    return { success: true, user: data.user, token: data.token };
+  } catch (error) {
+    return { success: false, error: mapError(error, "Failed to create account") };
+  }
 }
 
 export async function logout(): Promise<void> {
-  await delay(300);
-  await clearSession();
+  try {
+    const token = await getAccessToken();
+    if (token) {
+      await apiRequest("/auth/logout", { method: "POST" }, true);
+    }
+  } catch {
+    // Ignore network errors on logout — still clear local session
+  } finally {
+    await clearSession();
+  }
 }
 
 export async function getProfile(): Promise<AuthUser | null> {
-  await delay(200);
-  return getStoredSession();
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      return getStoredSession();
+    }
+    const user = await apiRequest<AuthUser>("/auth/me", { method: "GET" }, true);
+    await persistSession(user);
+    return user;
+  } catch {
+    return getStoredSession();
+  }
 }

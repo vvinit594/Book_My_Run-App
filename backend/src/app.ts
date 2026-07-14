@@ -3,40 +3,32 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import { corsOptions } from "./config/cors";
+import { errorHandler } from "./middleware/errorHandler";
+import apiRoutes from "./routes";
 
 const app: Application = express();
 
-// Security headers
 app.use(helmet());
-
-// CORS
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  })
-);
-
-// Request logging
+app.use(cors(corsOptions));
 app.use(morgan("dev"));
-
-// Body parsing
-app.use(express.json());
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
-
-// Cookies
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Health check
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "BookMyRun Backend Running 🚀",
+    message: "BookMyRun Backend Running",
   });
 });
+
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).json({ success: true, status: "ok" });
+});
+
+app.use("/api", apiRoutes);
+
+app.use(errorHandler);
 
 export default app;

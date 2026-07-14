@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -41,9 +41,11 @@ import {
 } from "../../types/organizer";
 import { saveOrganizerProfile } from "../../utils/organizerProfileStorage";
 import { validateOrganizerProfile } from "../../utils/organizerProfileValidation";
+import { useAuth } from "../../store/authStore";
 
 export default function OrganizerProfileScreen() {
   const router = useRouter();
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState<OrganizerProfile>({
     ...EMPTY_ORGANIZER_PROFILE,
     bankDetails: { ...EMPTY_ORGANIZER_PROFILE.bankDetails },
@@ -53,8 +55,37 @@ export default function OrganizerProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [bankModalVisible, setBankModalVisible] = useState(false);
 
+  // Keep verified contact fields sourced from authenticated User (auth/me).
+  useEffect(() => {
+    let mounted = true;
+
+    void (async () => {
+      await refreshUser();
+      if (!mounted) return;
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setProfile((prev) => ({
+      ...prev,
+      primaryEmail: user.email,
+      primaryPhone: user.phone,
+      primaryUserName: prev.primaryUserName || user.name || "",
+    }));
+  }, [user]);
+
   const updateProfile = useCallback(
     <K extends keyof OrganizerProfile>(key: K, value: OrganizerProfile[K]) => {
+      // Auth-owned fields are read-only in the form.
+      if (key === "primaryEmail" || key === "primaryPhone") {
+        return;
+      }
       setProfile((prev) => ({ ...prev, [key]: value }));
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     },
@@ -77,7 +108,21 @@ export default function OrganizerProfileScreen() {
   };
 
   const handleCompleteProfile = async () => {
-    const validationErrors = validateOrganizerProfile(profile);
+    if (!user?.email || !user?.phone) {
+      Alert.alert(
+        "Session Required",
+        "Please log in again to complete your organizer profile."
+      );
+      return;
+    }
+
+    const profileToValidate: OrganizerProfile = {
+      ...profile,
+      primaryEmail: user.email,
+      primaryPhone: user.phone,
+    };
+
+    const validationErrors = validateOrganizerProfile(profileToValidate);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -90,12 +135,15 @@ export default function OrganizerProfileScreen() {
 
     setSaving(true);
     try {
-      await saveOrganizerProfile(profile);
+      await saveOrganizerProfile(profileToValidate);
+      await refreshUser();
       router.replace("/organizer/dashboard");
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Save Failed",
-        "Unable to save organizer profile. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Unable to save organizer profile. Please try again."
       );
     } finally {
       setSaving(false);
@@ -103,6 +151,8 @@ export default function OrganizerProfileScreen() {
   };
 
   const hasBankDetails = Boolean(profile.bankDetails.accountHolderName);
+  const verifiedEmail = user?.email ?? profile.primaryEmail;
+  const verifiedPhone = user?.phone ?? profile.primaryPhone;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -219,24 +269,26 @@ export default function OrganizerProfileScreen() {
             />
             <ProfileInput
               label="Primary Email ID"
-              value={profile.primaryEmail}
-              onChangeText={(text) => updateProfile("primaryEmail", text)}
+              value={verifiedEmail}
+              onChangeText={() => undefined}
               placeholder="name@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
               required
               verified
+              editable={false}
               error={errors.primaryEmail}
             />
             <ProfileInput
               label="Primary Phone Number"
-              value={profile.primaryPhone}
-              onChangeText={(text) => updateProfile("primaryPhone", text)}
+              value={verifiedPhone}
+              onChangeText={() => undefined}
               placeholder="10-digit mobile number"
               keyboardType="phone-pad"
               maxLength={10}
               required
               verified
+              editable={false}
               error={errors.primaryPhone}
             />
             <ProfileInput
