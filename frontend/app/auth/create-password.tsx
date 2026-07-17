@@ -10,13 +10,18 @@ import { useRouter } from "expo-router";
 import { AuthHeader, PasswordCreation } from "../../components/auth";
 import Colors from "../../constants/colors";
 import { Spacing } from "../../constants/spacing";
-import { consumePostAuthRedirect } from "../../utils/navigationIntent";
+import { consumePostAuthRedirect, LIST_YOUR_EVENT_INTENT } from "../../utils/navigationIntent";
+import { navigateListYourEvent } from "../../utils/organizerNavigation";
 
 export default function CreatePasswordScreen() {
   const router = useRouter();
 
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
     const redirect = consumePostAuthRedirect();
+    if (redirect === LIST_YOUR_EVENT_INTENT) {
+      await navigateListYourEvent(router, { replace: true });
+      return;
+    }
     if (redirect) {
       router.replace(redirect as "/organizer/profile");
       return;

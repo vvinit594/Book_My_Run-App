@@ -5,6 +5,7 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
@@ -26,16 +27,19 @@ import {
 } from "../../components/home";
 import { AuthenticationModal } from "../../components/auth";
 import { City } from "../../types";
-import { openOrganizerProfile } from "../../utils/organizerNavigation";
+import { navigateListYourEvent } from "../../utils/organizerNavigation";
 import {
-  ORGANIZER_PROFILE_ROUTE,
+  LIST_YOUR_EVENT_INTENT,
   setPostAuthRedirect,
 } from "../../utils/navigationIntent";
 import { useProfilePress } from "../../hooks/useProfilePress";
+import { useAuth } from "../../store/authStore";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [listEventLoading, setListEventLoading] = useState(false);
   const { handleProfilePress, isAuthenticated } = useProfilePress(() =>
     setAuthModalVisible(true)
   );
@@ -70,15 +74,21 @@ export default function HomeScreen() {
     Alert.alert("Filters", "Filter bottom sheet coming soon!");
   };
 
-  const handleListEventPress = () => {
+  const handleListEventPress = useCallback(async () => {
     if (!isAuthenticated) {
-      setPostAuthRedirect(ORGANIZER_PROFILE_ROUTE);
+      setPostAuthRedirect(LIST_YOUR_EVENT_INTENT);
       setAuthModalVisible(true);
       return;
     }
 
-    openOrganizerProfile(router);
-  };
+    setListEventLoading(true);
+    try {
+      await refreshUser();
+      await navigateListYourEvent(router);
+    } finally {
+      setListEventLoading(false);
+    }
+  }, [isAuthenticated, refreshUser, router]);
 
   const handleNotificationsPress = () => {
     Alert.alert("Notifications", "Notifications screen coming soon!");
@@ -180,6 +190,12 @@ export default function HomeScreen() {
           setAuthModalVisible(false);
         }}
       />
+
+      {listEventLoading ? (
+        <View style={styles.loadingOverlay} pointerEvents="auto">
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -203,5 +219,12 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 20,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20,
   },
 });

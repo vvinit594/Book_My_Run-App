@@ -3,7 +3,7 @@
  *
  * Usage:
  *   node scripts/ensure-android.mjs
- *   node scripts/ensure-android.mjs --avd Pixel_3a
+ *   node scripts/ensure-android.mjs --avd Medium_Phone_API_36.1
  *   node scripts/ensure-android.mjs --open
  */
 import { execSync, spawn } from "node:child_process";
@@ -21,6 +21,7 @@ const SDK = process.env.ANDROID_HOME
   || process.env.ANDROID_SDK_ROOT
   || path.join(os.homedir(), "AppData", "Local", "Android", "Sdk");
 const EMULATOR = path.join(SDK, "emulator", "emulator.exe");
+const EXPO_GO_PACKAGE = "host.exp.exponent";
 
 function run(cmd, opts = {}) {
   return execSync(cmd, {
@@ -101,6 +102,8 @@ function pickAvd(preferred) {
     throw new Error("No Android Virtual Devices found. Create one in Android Studio.");
   }
   if (preferred && avds.includes(preferred)) return preferred;
+  // Prefer AVDs that usually ship with Play Store for Expo Go installs
+  if (avds.includes("Medium_Phone_API_36.1")) return "Medium_Phone_API_36.1";
   if (avds.includes("Pixel_3a")) return "Pixel_3a";
   return avds[0];
 }
@@ -118,7 +121,7 @@ function bootAvd(avdName) {
   ).unref();
 }
 
-async function waitForOnlineDevice(timeoutMs = 120000) {
+async function waitForOnlineDevice(timeoutMs = 180000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const devices = listDevices();
@@ -126,7 +129,11 @@ async function waitForOnlineDevice(timeoutMs = 120000) {
     if (online) {
       try {
         const boot = adb(`-s ${online.id} shell getprop sys.boot_completed`).trim();
-        if (boot === "1") return online;
+        if (boot === "1") {
+          // Extra settle time so Expo's ADB connect to :5554 does not race
+          await delay(3000);
+          return online;
+        }
       } catch {
         // still booting
       }
@@ -141,7 +148,10 @@ async function waitForOnlineDevice(timeoutMs = 120000) {
     }
     await delay(3000);
   }
-  throw new Error("Timed out waiting for an online Android device/emulator.");
+  throw new Error(
+    "Timed out waiting for an online Android device/emulator. " +
+      "Open Android Studio → Device Manager → cold boot the AVD, then retry."
+  );
 }
 
 function setupReverse(deviceId) {
@@ -155,8 +165,26 @@ function setupReverse(deviceId) {
   }
 }
 
+function hasExpoGo(deviceId) {
+  try {
+    const pathOut = adb(`-s ${deviceId} shell pm path ${EXPO_GO_PACKAGE}`);
+    return pathOut.includes("package:");
+  } catch {
+    return false;
+  }
+}
+
+function openExpoGoPlayStore(deviceId) {
+  try {
+    adb(
+      `-s ${deviceId} shell am start -a android.intent.action.VIEW -d "market://details?id=${EXPO_GO_PACKAGE}"`
+    );
+  } catch {
+    // ignore
+  }
+}
+
 function openExpo(deviceId) {
-  // With adb reverse, Expo Go should load localhost on the device.
   const url = "exp://127.0.0.1:8081";
   console.log(`Opening ${url} on ${deviceId}...`);
   try {
@@ -195,20 +223,27 @@ async function main() {
     online = await waitForOnlineDevice();
   } else if (!online) {
     online = await waitForOnlineDevice();
+  } else {
+    // Even if listed as device, wait until boot completes
+    online = await waitForOnlineDevice(60000);
   }
 
   console.log(`Online: ${online.id}`);
   setupReverse(online.id);
 
-  if (SHOULD_OPEN) {
+  if (!hasExpoGo(online.id)) {
+    console.log("");
+    console.log("Expo Go is NOT installed on this emulator.");
+    console.log("Opening Play Store — install \"Expo Go\", then press `a` in Expo.");
+    openExpoGoPlayStore(online.id);
+    console.log("");
+  } else if (SHOULD_OPEN) {
     openExpo(online.id);
   }
 
-  console.log("");
-  console.log("Ready. In Expo terminal press `a`, or run:");
+  console.log("Ready. Prefer:");
   console.log("  npm run start:android");
-  console.log("For physical phones: enable USB debugging + use the same Wi-Fi,");
-  console.log("or USB + `npm run start:phone`.");
+  console.log("Avoid pressing `a` until the emulator home screen is fully up.");
   console.log("");
 }
 

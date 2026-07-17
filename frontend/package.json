@@ -12,7 +12,7 @@
     "start:phone:usb": "node scripts/free-metro-port.mjs && adb -d reverse tcp:8081 tcp:8081 && expo start --localhost --clear",
     "start:phone:lan": "expo start --lan --clear",
     "phone:check": "node scripts/phone-setup-check.mjs",
-    "android:fix": "node scripts/ensure-android.mjs --avd Pixel_3a",
+    "android:fix": "node scripts/ensure-android.mjs --avd Medium_Phone_API_36.1",
     "start:android": "node scripts/start-android.mjs",
     "android": "node scripts/start-android.mjs",
     "ios": "expo start --ios --clear",

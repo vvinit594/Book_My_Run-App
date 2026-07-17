@@ -21,7 +21,9 @@ import { AuthTab } from "../../types/auth";
 import {
   clearPostAuthRedirect,
   consumePostAuthRedirect,
+  LIST_YOUR_EVENT_INTENT,
 } from "../../utils/navigationIntent";
+import { navigateListYourEvent } from "../../utils/organizerNavigation";
 
 interface AuthenticationModalProps {
   visible: boolean;
@@ -40,9 +42,13 @@ export default function AuthenticationModal({
     onClose();
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
     const redirect = consumePostAuthRedirect();
     onClose();
+    if (redirect === LIST_YOUR_EVENT_INTENT) {
+      await navigateListYourEvent(router);
+      return;
+    }
     if (redirect) {
       router.push(redirect as "/organizer/profile");
     }
