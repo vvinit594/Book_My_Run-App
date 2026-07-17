@@ -9,3 +9,4 @@ export { default as BankDetailsModal } from "./BankDetailsModal";
 export { default as SocialMediaInputs } from "./SocialMediaInputs";
 export { default as ProfileFooter } from "./ProfileFooter";
 export { default as PrimaryButton } from "./PrimaryButton";
+export { default as ContactUpdateModal } from "./ContactUpdateModal";

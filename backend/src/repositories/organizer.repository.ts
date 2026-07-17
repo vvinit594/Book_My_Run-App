@@ -15,6 +15,7 @@ export type OrganizerProfileInput = {
   websiteUrl?: string | null;
   organizationType?: OrganizationType | null;
   panNumber?: string | null;
+  aadhaarNumber?: string | null;
   permanentAddress?: string | null;
   billingAddressSameAsPermanent?: boolean;
   billingAddress?: string | null;
@@ -53,6 +54,7 @@ export class OrganizerRepository {
       websiteUrl: data.websiteUrl ?? null,
       organizationType: data.organizationType ?? null,
       panNumber: data.panNumber ?? null,
+      aadhaarNumber: data.aadhaarNumber ?? null,
       permanentAddress: data.permanentAddress ?? null,
       billingAddressSameAsPermanent: data.billingAddressSameAsPermanent ?? true,
       billingAddress: data.billingAddress ?? null,
@@ -115,6 +117,7 @@ export class OrganizerRepository {
       websiteUrl: profile.websiteUrl,
       organizationType: profile.organizationType,
       panNumber: profile.panNumber,
+      aadhaarNumber: profile.aadhaarNumber,
       permanentAddress: profile.permanentAddress,
       billingAddressSameAsPermanent: profile.billingAddressSameAsPermanent,
       billingAddress: profile.billingAddress,

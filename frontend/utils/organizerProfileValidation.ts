@@ -1,8 +1,9 @@
 import {
+  AADHAAR_REGEX,
   EMAIL_REGEX,
-  GST_REGEX,
-  PAN_REGEX,
+  isValidPan,
   PHONE_REGEX,
+  validateGstAgainstPan,
   WEBSITE_REGEX,
 } from "../constants/organizer";
 import {
@@ -25,8 +26,17 @@ export function validateOrganizerProfile(
 
   if (!profile.panNumber.trim()) {
     errors.panNumber = "PAN number is required";
-  } else if (!PAN_REGEX.test(profile.panNumber.trim().toUpperCase())) {
+  } else if (!isValidPan(profile.panNumber)) {
     errors.panNumber = "Enter a valid PAN (e.g. AAFCF1120L)";
+  }
+
+  if (profile.organizationType === "individual") {
+    const aadhaar = profile.aadhaarNumber.replace(/\D/g, "");
+    if (!aadhaar) {
+      errors.aadhaarNumber = "Aadhaar Card Number is required";
+    } else if (!AADHAAR_REGEX.test(aadhaar)) {
+      errors.aadhaarNumber = "Enter a valid 12-digit Aadhaar number";
+    }
   }
 
   if (!profile.permanentAddress.trim()) {
@@ -44,8 +54,6 @@ export function validateOrganizerProfile(
     errors.primaryUserName = "Primary user name is required";
   }
 
-  // primaryEmail / primaryPhone are owned by User (auth) and validated via session
-
   if (
     profile.backupPhone.trim() &&
     !PHONE_REGEX.test(profile.backupPhone.trim())
@@ -53,10 +61,9 @@ export function validateOrganizerProfile(
     errors.backupPhone = "Enter a valid 10-digit mobile number";
   }
 
-  if (
-    profile.supportEmail.trim() &&
-    !EMAIL_REGEX.test(profile.supportEmail.trim())
-  ) {
+  if (!profile.supportEmail.trim()) {
+    errors.supportEmail = "Support Email ID is required";
+  } else if (!EMAIL_REGEX.test(profile.supportEmail.trim())) {
     errors.supportEmail = "Enter a valid support email";
   }
 
@@ -72,10 +79,12 @@ export function validateOrganizerProfile(
   }
 
   if (profile.gstStatus === "registered") {
-    if (!profile.gstNumber.trim()) {
-      errors.gstNumber = "GST number is required for registered status";
-    } else if (!GST_REGEX.test(profile.gstNumber.trim().toUpperCase())) {
-      errors.gstNumber = "Enter a valid GST number";
+    const gstCheck = validateGstAgainstPan(
+      profile.gstNumber,
+      profile.panNumber
+    );
+    if (!gstCheck.valid) {
+      errors.gstNumber = gstCheck.message || "Invalid GST Number";
     }
   }
 

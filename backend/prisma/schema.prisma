@@ -17,6 +17,10 @@ enum OtpPurpose {
   SIGNUP
   LOGIN
   PASSWORD_RESET
+  EMAIL_UPDATE_CURRENT
+  EMAIL_UPDATE_NEW
+  PHONE_UPDATE_CURRENT
+  PHONE_UPDATE_NEW
 }
 
 enum OrganizationType {
@@ -62,6 +66,7 @@ model OrganizerProfile {
   websiteUrl      String?
   organizationType OrganizationType?
   panNumber       String?
+  aadhaarNumber   String?
   permanentAddress String?
   billingAddressSameAsPermanent Boolean @default(true)
   billingAddress  String?

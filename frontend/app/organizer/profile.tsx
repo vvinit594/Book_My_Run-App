@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   AddressSection,
   BankDetailsModal,
+  ContactUpdateModal,
   OrganizerLogoUploader,
   ProfileDropdown,
   ProfileFooter,
@@ -26,7 +27,9 @@ import {
 } from "../../components/organizer/profile";
 import {
   GST_STATUS_OPTIONS,
+  isValidPan,
   ORGANIZATION_TYPE_OPTIONS,
+  validateGstAgainstPan,
 } from "../../constants/organizer";
 import Colors from "../../constants/colors";
 import { FontSize, Spacing } from "../../constants/spacing";
@@ -54,6 +57,8 @@ export default function OrganizerProfileScreen() {
   const [errors, setErrors] = useState<OrganizerProfileErrors>({});
   const [saving, setSaving] = useState(false);
   const [bankModalVisible, setBankModalVisible] = useState(false);
+  const [emailUpdateVisible, setEmailUpdateVisible] = useState(false);
+  const [phoneUpdateVisible, setPhoneUpdateVisible] = useState(false);
 
   // Keep verified contact fields sourced from authenticated User (auth/me).
   useEffect(() => {
@@ -82,12 +87,48 @@ export default function OrganizerProfileScreen() {
 
   const updateProfile = useCallback(
     <K extends keyof OrganizerProfile>(key: K, value: OrganizerProfile[K]) => {
-      // Auth-owned fields are read-only in the form.
       if (key === "primaryEmail" || key === "primaryPhone") {
         return;
       }
-      setProfile((prev) => ({ ...prev, [key]: value }));
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
+
+      setProfile((prev) => {
+        const next = { ...prev, [key]: value };
+
+        if (key === "organizationType" && value !== "individual") {
+          next.aadhaarNumber = "";
+        }
+
+        if (key === "panNumber") {
+          const pan = String(value).toUpperCase();
+          next.panNumber = pan;
+          if (next.gstStatus === "registered" && next.gstNumber) {
+            const gstCheck = validateGstAgainstPan(next.gstNumber, pan);
+            setErrors((prevErrors) => ({
+              ...prevErrors,
+              panNumber: undefined,
+              gstNumber: gstCheck.valid ? undefined : gstCheck.message,
+            }));
+            return next;
+          }
+        }
+
+        if (key === "gstNumber") {
+          const gst = String(value).toUpperCase();
+          next.gstNumber = gst;
+          const gstCheck = validateGstAgainstPan(gst, next.panNumber);
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            gstNumber: gst ? (gstCheck.valid ? undefined : gstCheck.message) : undefined,
+          }));
+          return next;
+        }
+
+        return next;
+      });
+
+      if (key !== "panNumber" && key !== "gstNumber") {
+        setErrors((prev) => ({ ...prev, [key]: undefined }));
+      }
     },
     []
   );
@@ -153,6 +194,7 @@ export default function OrganizerProfileScreen() {
   const hasBankDetails = Boolean(profile.bankDetails.accountHolderName);
   const verifiedEmail = user?.email ?? profile.primaryEmail;
   const verifiedPhone = user?.phone ?? profile.primaryPhone;
+  const panIsValid = isValidPan(profile.panNumber);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -235,6 +277,20 @@ export default function OrganizerProfileScreen() {
               required
               error={errors.panNumber}
             />
+            {profile.organizationType === "individual" ? (
+              <ProfileInput
+                label="Aadhaar Card Number"
+                value={profile.aadhaarNumber}
+                onChangeText={(text) =>
+                  updateProfile("aadhaarNumber", text.replace(/\D/g, ""))
+                }
+                placeholder="Enter Aadhaar"
+                keyboardType="number-pad"
+                maxLength={12}
+                required
+                error={errors.aadhaarNumber}
+              />
+            ) : null}
             <AddressSection
               permanentAddress={profile.permanentAddress}
               billingAddress={profile.billingAddress}
@@ -277,6 +333,7 @@ export default function OrganizerProfileScreen() {
               required
               verified
               editable={false}
+              onUpdatePress={() => setEmailUpdateVisible(true)}
               error={errors.primaryEmail}
             />
             <ProfileInput
@@ -289,6 +346,7 @@ export default function OrganizerProfileScreen() {
               required
               verified
               editable={false}
+              onUpdatePress={() => setPhoneUpdateVisible(true)}
               error={errors.primaryPhone}
             />
             <ProfileInput
@@ -308,6 +366,7 @@ export default function OrganizerProfileScreen() {
               placeholder="support@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
+              required
               showInfoIcon
               error={errors.supportEmail}
             />
@@ -344,13 +403,20 @@ export default function OrganizerProfileScreen() {
               <ProfileInput
                 label="GST Number"
                 value={profile.gstNumber}
-                onChangeText={(text) =>
-                  updateProfile("gstNumber", text.toUpperCase())
-                }
+                onChangeText={(text) => {
+                  if (!panIsValid) return;
+                  updateProfile("gstNumber", text.toUpperCase());
+                }}
                 placeholder="e.g. 27AAFCF1120L1ZU"
                 autoCapitalize="characters"
                 maxLength={15}
                 required
+                editable={panIsValid}
+                helperText={
+                  panIsValid
+                    ? undefined
+                    : "Please enter your PAN Card Number first."
+                }
                 error={errors.gstNumber}
               />
             ) : null}
@@ -397,6 +463,22 @@ export default function OrganizerProfileScreen() {
         initialValues={profile.bankDetails}
         onClose={() => setBankModalVisible(false)}
         onSave={handleBankSave}
+      />
+
+      <ContactUpdateModal
+        visible={emailUpdateVisible}
+        type="email"
+        currentValue={verifiedEmail}
+        onClose={() => setEmailUpdateVisible(false)}
+        onSuccess={refreshUser}
+      />
+
+      <ContactUpdateModal
+        visible={phoneUpdateVisible}
+        type="phone"
+        currentValue={verifiedPhone}
+        onClose={() => setPhoneUpdateVisible(false)}
+        onSuccess={refreshUser}
       />
     </SafeAreaView>
   );

@@ -52,16 +52,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!mounted) return;
 
+      // Mark hydrated immediately from local session so UI actions (profile icon)
+      // are not blocked while /auth/me is in flight.
       if (token && stored) {
-        const user = (await authService.getProfile()) ?? stored;
-        if (!mounted) return;
         setState({
           isAuthenticated: true,
           isHydrated: true,
-          user,
+          user: stored,
           token,
           pendingSignup: null,
         });
+
+        try {
+          const user = (await authService.getProfile()) ?? stored;
+          if (!mounted) return;
+          setState((prev) => ({
+            ...prev,
+            isAuthenticated: true,
+            user,
+            token,
+          }));
+        } catch {
+          // Keep local session if network refresh fails.
+        }
         return;
       }
 

@@ -9,6 +9,12 @@ import {
   organizerRepository,
 } from "../repositories/organizer.repository";
 import { AppError } from "../utils/AppError";
+import {
+  isValidAadhaar,
+  isValidEmail,
+  isValidPan,
+  validateGstAgainstPan,
+} from "../utils/indiaIds";
 
 export type OrganizerProfileBody = {
   logoUri?: string | null;
@@ -18,13 +24,12 @@ export type OrganizerProfileBody = {
   websiteUrl?: string;
   organizationType?: string;
   panNumber?: string;
+  aadhaarNumber?: string;
   permanentAddress?: string;
   billingAddressSameAsPermanent?: boolean;
   billingAddress?: string;
   primaryUserName?: string;
-  /** Ignored — contact comes from authenticated User */
   primaryEmail?: string;
-  /** Ignored — contact comes from authenticated User */
   primaryPhone?: string;
   backupPhone?: string;
   supportEmail?: string;
@@ -77,23 +82,63 @@ function mapBodyToInput(body: OrganizerProfileBody): OrganizerProfileInput {
     "current",
   ] as const) as BankAccountType | null;
 
+  const panNumber = body.panNumber?.trim().toUpperCase() || null;
+  if (!panNumber || !isValidPan(panNumber)) {
+    throw new AppError("Enter a valid PAN Card Number", 400, "INVALID_PAN");
+  }
+
+  const supportEmail = body.supportEmail?.trim().toLowerCase() || "";
+  if (!supportEmail || !isValidEmail(supportEmail)) {
+    throw new AppError(
+      "Support Email ID is required",
+      400,
+      "INVALID_SUPPORT_EMAIL"
+    );
+  }
+
+  let aadhaarNumber: string | null = null;
+  if (organizationType === "individual") {
+    const aadhaar = body.aadhaarNumber?.replace(/\D/g, "") || "";
+    if (!isValidAadhaar(aadhaar)) {
+      throw new AppError(
+        "Enter a valid 12-digit Aadhaar Card Number",
+        400,
+        "INVALID_AADHAAR"
+      );
+    }
+    aadhaarNumber = aadhaar;
+  }
+
+  const gstNumber = body.gstNumber?.trim().toUpperCase() || null;
+  if (gstStatus === "registered") {
+    const gstCheck = validateGstAgainstPan(gstNumber || "", panNumber);
+    if (!gstCheck.valid) {
+      throw new AppError(
+        gstCheck.message || "Invalid GST Number",
+        400,
+        "INVALID_GST"
+      );
+    }
+  }
+
   return {
     logoUrl: body.logoUrl ?? body.logoUri ?? null,
     organizerName: body.organizerName.trim(),
     aboutOrganizer: body.aboutOrganizer?.trim() || null,
     websiteUrl: body.websiteUrl?.trim() || null,
     organizationType,
-    panNumber: body.panNumber?.trim().toUpperCase() || null,
+    panNumber,
+    aadhaarNumber,
     permanentAddress: body.permanentAddress?.trim() || null,
     billingAddressSameAsPermanent: body.billingAddressSameAsPermanent ?? true,
     billingAddress: body.billingAddress?.trim() || null,
     primaryUserName: body.primaryUserName?.trim() || null,
     backupPhone: body.backupPhone?.replace(/\D/g, "").slice(-10) || null,
-    supportEmail: body.supportEmail?.trim().toLowerCase() || null,
+    supportEmail,
     emailNotificationForRegistration:
       body.emailNotificationForRegistration ?? true,
     gstStatus,
-    gstNumber: body.gstNumber?.trim().toUpperCase() || null,
+    gstNumber: gstStatus === "registered" ? gstNumber : null,
     bankAccountHolderName: body.bankDetails?.accountHolderName?.trim() || null,
     bankAccountNumber: body.bankDetails?.accountNumber?.trim() || null,
     bankIfscCode: body.bankDetails?.ifscCode?.trim().toUpperCase() || null,

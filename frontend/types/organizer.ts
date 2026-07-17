@@ -38,6 +38,7 @@ export interface OrganizerProfile {
   websiteUrl: string;
   organizationType: OrganizationType | "";
   panNumber: string;
+  aadhaarNumber: string;
   permanentAddress: string;
   billingAddressSameAsPermanent: boolean;
   billingAddress: string;
@@ -89,6 +90,7 @@ export const EMPTY_ORGANIZER_PROFILE: OrganizerProfile = {
   websiteUrl: "",
   organizationType: "",
   panNumber: "",
+  aadhaarNumber: "",
   permanentAddress: "",
   billingAddressSameAsPermanent: true,
   billingAddress: "",

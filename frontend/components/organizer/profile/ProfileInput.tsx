@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet,
   TextInputProps,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../../constants/colors";
@@ -19,6 +20,8 @@ interface ProfileInputProps extends Omit<TextInputProps, "style"> {
   verified?: boolean;
   showInfoIcon?: boolean;
   editable?: boolean;
+  onUpdatePress?: () => void;
+  helperText?: string;
 }
 
 export default function ProfileInput({
@@ -30,6 +33,8 @@ export default function ProfileInput({
   verified = false,
   showInfoIcon = false,
   editable = true,
+  onUpdatePress,
+  helperText,
   ...textInputProps
 }: ProfileInputProps) {
   return (
@@ -53,19 +58,36 @@ export default function ProfileInput({
           </View>
         ) : null}
       </View>
-      <TextInput
-        style={[
-          styles.input,
-          !editable ? styles.inputDisabled : null,
-          error ? styles.inputError : null,
-        ]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholderTextColor={Colors.textLight}
-        editable={editable}
-        selectTextOnFocus={editable}
-        {...textInputProps}
-      />
+
+      <View style={styles.inputRow}>
+        <TextInput
+          style={[
+            styles.input,
+            onUpdatePress ? styles.inputWithAction : null,
+            !editable ? styles.inputDisabled : null,
+            error ? styles.inputError : null,
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholderTextColor={Colors.textLight}
+          editable={editable}
+          selectTextOnFocus={editable}
+          {...textInputProps}
+        />
+        {onUpdatePress ? (
+          <TouchableOpacity
+            style={styles.updateButton}
+            onPress={onUpdatePress}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.updateButtonText}>Update</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {helperText && !error ? (
+        <Text style={styles.helperText}>{helperText}</Text>
+      ) : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
@@ -100,7 +122,13 @@ const styles = StyleSheet.create({
     color: Colors.success,
     fontWeight: "600",
   },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
   input: {
+    flex: 1,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
@@ -111,12 +139,35 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     minHeight: 48,
   },
+  inputWithAction: {
+    flex: 1,
+  },
   inputDisabled: {
     backgroundColor: "#EEEEEE",
     color: Colors.textSecondary,
   },
   inputError: {
     borderColor: Colors.error,
+  },
+  updateButton: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  updateButtonText: {
+    color: Colors.textPrimary,
+    fontSize: FontSize.md,
+    fontWeight: "600",
+  },
+  helperText: {
+    marginTop: Spacing.xs,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
   },
   errorText: {
     marginTop: Spacing.xs,
