@@ -15,14 +15,14 @@ export const ORGANIZING_EVENTS_MENU: ProfileMenuItemConfig[] = [
     title: "Profile",
     description: "Manage Organizer Profile",
     icon: "person-outline",
-    route: "/profile/organizer-profile",
+    route: "/organizer/profile",
   },
   {
     id: "organizer-events",
     title: "Events",
     description: "View all organizer events",
     icon: "calendar-outline",
-    route: "/profile/organizer-events",
+    route: "/organizer/dashboard",
   },
   {
     id: "organizer-dashboard",

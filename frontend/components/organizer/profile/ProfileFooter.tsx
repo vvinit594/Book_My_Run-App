@@ -8,18 +8,20 @@ import { Spacing } from "../../../constants/spacing";
 interface ProfileFooterProps {
   onComplete: () => void;
   loading?: boolean;
+  title?: string;
 }
 
 export default function ProfileFooter({
   onComplete,
   loading = false,
+  title = "Complete Profile",
 }: ProfileFooterProps) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
       <PrimaryButton
-        title="Complete Profile"
+        title={title}
         onPress={onComplete}
         loading={loading}
       />

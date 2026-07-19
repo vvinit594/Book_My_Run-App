@@ -1,10 +1,6 @@
-import ProfilePlaceholderScreen from "../../components/profile/ProfilePlaceholderScreen";
+import { Redirect } from "expo-router";
 
+/** Kept for old links — Organizing Events → Profile now goes to /organizer/profile */
 export default function OrganizerProfileScreen() {
-  return (
-    <ProfilePlaceholderScreen
-      title="Organizer Profile"
-      message="Manage your organizer profile details here. This feature is coming soon."
-    />
-  );
+  return <Redirect href="/organizer/profile" />;
 }

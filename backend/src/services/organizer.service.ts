@@ -15,6 +15,7 @@ import {
   isValidPan,
   validateGstAgainstPan,
 } from "../utils/indiaIds";
+import { financialsService } from "./financials.service";
 
 export type OrganizerProfileBody = {
   logoUri?: string | null;
@@ -167,6 +168,24 @@ async function getAuthContact(userId: string) {
   return user;
 }
 
+function applyPrimaryBankDetails<T extends { bankDetails: Record<string, unknown> }>(
+  publicProfile: T,
+  bank: Awaited<ReturnType<typeof financialsService.getPrimaryBankAccount>>
+): T {
+  if (!bank) return publicProfile;
+  return {
+    ...publicProfile,
+    bankDetails: {
+      accountHolderName: bank.accountHolderName,
+      accountNumber: bank.accountNumber,
+      ifscCode: bank.ifscCode,
+      bankName: bank.bankName,
+      branchName: bank.branchName ?? "",
+      accountType: bank.accountType ?? "",
+    },
+  };
+}
+
 export class OrganizerService {
   async getProfile(userId: string) {
     const authUser = await getAuthContact(userId);
@@ -185,9 +204,14 @@ export class OrganizerService {
       };
     }
 
+    const primaryBank = await financialsService.getPrimaryBankAccount(userId);
+
     return {
       isProfileCompleted: profile.isProfileCompleted,
-      profile: organizerRepository.toPublic(profile, authUser),
+      profile: applyPrimaryBankDetails(
+        organizerRepository.toPublic(profile, authUser),
+        primaryBank
+      ),
       authContact: {
         email: authUser.email,
         phone: authUser.phone,
@@ -201,7 +225,35 @@ export class OrganizerService {
     const authUser = await getAuthContact(userId);
     const input = mapBodyToInput(body);
     const profile = await organizerRepository.upsertProfile(userId, input);
-    return organizerRepository.toPublic(profile, authUser);
+
+    // OrganizerBankAccount is the source of truth — upsert primary from profile form.
+    const bank = body.bankDetails;
+    if (
+      bank?.accountHolderName?.trim() &&
+      bank.accountNumber?.trim() &&
+      bank.ifscCode?.trim() &&
+      bank.bankName?.trim()
+    ) {
+      const accountType = asEnum(bank.accountType, [
+        "savings",
+        "current",
+      ] as const);
+      await financialsService.upsertPrimaryBankAccount(userId, {
+        accountHolderName: bank.accountHolderName,
+        accountNumber: bank.accountNumber,
+        ifscCode: bank.ifscCode,
+        bankName: bank.bankName,
+        branchName: bank.branchName,
+        ...(accountType ? { accountType } : {}),
+        isDefault: true,
+      });
+    }
+
+    const primaryBank = await financialsService.getPrimaryBankAccount(userId);
+    return applyPrimaryBankDetails(
+      organizerRepository.toPublic(profile, authUser),
+      primaryBank
+    );
   }
 
   async updateProfile(userId: string, body: OrganizerProfileBody) {

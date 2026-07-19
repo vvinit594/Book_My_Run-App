@@ -1,10 +1,6 @@
-import ProfilePlaceholderScreen from "../../components/profile/ProfilePlaceholderScreen";
+import { Redirect } from "expo-router";
 
+/** Organizing Events → Events uses the existing Organizer Dashboard */
 export default function OrganizerEventsScreen() {
-  return (
-    <ProfilePlaceholderScreen
-      title="Organizer Events"
-      message="View and manage all your organizer events here. This feature is coming soon."
-    />
-  );
+  return <Redirect href="/organizer/dashboard" />;
 }

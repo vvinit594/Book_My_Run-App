@@ -6,15 +6,21 @@ import cookieParser from "cookie-parser";
 import { corsOptions } from "./config/cors";
 import { errorHandler } from "./middleware/errorHandler";
 import apiRoutes from "./routes";
+import { uploadsRoot } from "./middleware/upload.middleware";
 
 const app: Application = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use("/uploads", express.static(uploadsRoot));
 
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({

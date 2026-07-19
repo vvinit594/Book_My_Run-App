@@ -42,9 +42,11 @@ import {
   OrganizerProfileErrors,
   SocialMediaLinks,
 } from "../../types/organizer";
-import { saveOrganizerProfile } from "../../utils/organizerProfileStorage";
+import { saveOrganizerProfile, getOrganizerProfile } from "../../utils/organizerProfileStorage";
 import { validateOrganizerProfile } from "../../utils/organizerProfileValidation";
 import { useAuth } from "../../store/authStore";
+import * as organizerService from "../../services/organizer.service";
+import * as financialsService from "../../services/financials.service";
 
 export default function OrganizerProfileScreen() {
   const router = useRouter();
@@ -56,17 +58,69 @@ export default function OrganizerProfileScreen() {
   });
   const [errors, setErrors] = useState<OrganizerProfileErrors>({});
   const [saving, setSaving] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [bankModalVisible, setBankModalVisible] = useState(false);
   const [emailUpdateVisible, setEmailUpdateVisible] = useState(false);
   const [phoneUpdateVisible, setPhoneUpdateVisible] = useState(false);
 
-  // Keep verified contact fields sourced from authenticated User (auth/me).
   useEffect(() => {
     let mounted = true;
 
     void (async () => {
       await refreshUser();
+      const [result, banks] = await Promise.all([
+        organizerService.getOrganizerProfile(),
+        financialsService.getBankAccounts(),
+      ]);
       if (!mounted) return;
+
+      const primaryBank =
+        banks.success
+          ? banks.accounts.find((account) => account.isDefault) ||
+            banks.accounts[0]
+          : null;
+
+      const bankFromApi = primaryBank
+        ? {
+            accountHolderName: primaryBank.accountHolderName,
+            accountNumber: primaryBank.accountNumber,
+            confirmAccountNumber: primaryBank.accountNumber,
+            ifscCode: primaryBank.ifscCode,
+            bankName: primaryBank.bankName,
+            branchName: primaryBank.branchName || "",
+            accountType: (primaryBank.accountType || "") as BankDetails["accountType"],
+          }
+        : null;
+
+      if (result.success && result.profile) {
+        const bankDetails = bankFromApi || {
+          ...EMPTY_ORGANIZER_PROFILE.bankDetails,
+          ...result.profile.bankDetails,
+          confirmAccountNumber:
+            result.profile.bankDetails.accountNumber || "",
+        };
+        setProfile({
+          ...result.profile,
+          bankDetails,
+          socialMedia: {
+            ...EMPTY_ORGANIZER_PROFILE.socialMedia,
+            ...result.profile.socialMedia,
+          },
+        });
+        setIsEditMode(Boolean(result.isProfileCompleted));
+      } else {
+        const cached = await getOrganizerProfile();
+        if (!mounted) return;
+        if (cached.organizerName) {
+          setProfile({
+            ...cached,
+            bankDetails: bankFromApi || cached.bankDetails,
+          });
+          setIsEditMode(Boolean(cached.completed));
+        }
+      }
+      setLoadingProfile(false);
     })();
 
     return () => {
@@ -143,7 +197,12 @@ export default function OrganizerProfileScreen() {
     []
   );
 
-  const handleBankSave = (details: BankDetails) => {
+  const handleBankSave = async (details: BankDetails) => {
+    const result = await financialsService.upsertPrimaryBankAccount(details);
+    if (!result.success) {
+      Alert.alert("Error", result.error || "Unable to save bank account");
+      return;
+    }
     updateProfile("bankDetails", details);
     setBankModalVisible(false);
   };
@@ -176,9 +235,27 @@ export default function OrganizerProfileScreen() {
 
     setSaving(true);
     try {
-      await saveOrganizerProfile(profileToValidate);
+      const result = isEditMode
+        ? await organizerService.updateOrganizerProfile(profileToValidate)
+        : await organizerService.saveOrganizerProfile(profileToValidate);
+
+      if (!result.success) {
+        throw new Error(result.error || "Unable to save organizer profile.");
+      }
+
+      await saveOrganizerProfile({
+        ...profileToValidate,
+        completed: true,
+        completedAt: new Date().toISOString(),
+      });
       await refreshUser();
-      router.replace("/organizer/dashboard");
+
+      if (isEditMode) {
+        Alert.alert("Saved", "Organizer profile updated successfully.");
+        setIsEditMode(true);
+      } else {
+        router.replace("/organizer/dashboard");
+      }
     } catch (error) {
       Alert.alert(
         "Save Failed",
@@ -196,6 +273,16 @@ export default function OrganizerProfileScreen() {
   const verifiedPhone = user?.phone ?? profile.primaryPhone;
   const panIsValid = isValidPan(profile.panNumber);
 
+  if (loadingProfile) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.loadingWrap}>
+          <Text style={styles.headerSubtitle}>Loading organizer profile…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
@@ -209,7 +296,9 @@ export default function OrganizerProfileScreen() {
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerTitle}>Organizer Profile</Text>
           <Text style={styles.headerSubtitle}>
-            Complete your profile to start listing events
+            {isEditMode
+              ? "Update your organizer details"
+              : "Complete your profile to start listing events"}
           </Text>
         </View>
         <View style={styles.headerSpacer} />
@@ -455,7 +544,11 @@ export default function OrganizerProfileScreen() {
           </SectionCard>
         </ScrollView>
 
-        <ProfileFooter onComplete={handleCompleteProfile} loading={saving} />
+        <ProfileFooter
+          onComplete={handleCompleteProfile}
+          loading={saving}
+          title={isEditMode ? "Save Changes" : "Complete Profile"}
+        />
       </KeyboardAvoidingView>
 
       <BankDetailsModal
@@ -491,6 +584,12 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.lg,
   },
   header: {
     flexDirection: "row",

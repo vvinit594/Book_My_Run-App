@@ -25,4 +25,7 @@ function resolveDefaultHost(): string {
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") || resolveDefaultHost();
 
+/** Origin without `/api` — used for static uploads */
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+
 export const AUTH_TOKEN_KEY = "@bookmyrun/auth_token";

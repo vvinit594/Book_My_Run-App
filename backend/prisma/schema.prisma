@@ -38,6 +38,26 @@ enum BankAccountType {
   current
 }
 
+enum BankVerificationStatus {
+  pending
+  verified
+  failed
+}
+
+enum SupportTicketPriority {
+  low
+  medium
+  high
+}
+
+enum SupportTicketStatus {
+  open
+  in_progress
+  waiting_for_organizer
+  resolved
+  closed
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String?
@@ -53,6 +73,8 @@ model User {
   organizerProfile OrganizerProfile?
   otpVerifications OtpVerification[]
   refreshTokens    RefreshToken[]
+  bankAccounts     OrganizerBankAccount[]
+  supportTickets   SupportTicket[]
 }
 
 model OrganizerProfile {
@@ -126,4 +148,73 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model OrganizerBankAccount {
+  id                String                 @id @default(cuid())
+  userId            String
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  bankName          String
+  branchName        String?
+  accountType       BankAccountType?
+  isDefault         Boolean                @default(false)
+  verificationStatus BankVerificationStatus @default(pending)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  linkedEvents      OrganizerBankEventLink[]
+
+  @@index([userId])
+}
+
+model OrganizerBankEventLink {
+  id            String               @id @default(cuid())
+  bankAccountId String
+  bankAccount   OrganizerBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  eventId       String?
+  eventName     String
+  createdAt     DateTime             @default(now())
+
+  @@unique([bankAccountId, eventName])
+  @@index([bankAccountId])
+}
+
+model SupportTicket {
+  id           String                 @id @default(cuid())
+  ticketNumber String                 @unique
+  userId       String
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String
+  subject      String
+  description  String
+  priority     SupportTicketPriority  @default(medium)
+  eventName    String?
+  status       SupportTicketStatus    @default(open)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  attachments  SupportTicketAttachment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SupportTicketAttachment {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileUrl   String
+  mimeType  String?
+  size      Int?
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+/// ponytail: single-row counter for BMR-SUP-###### ticket numbers; swap to DB sequence if multi-region
+model SupportTicketCounter {
+  id         Int @id @default(1)
+  lastNumber Int @default(0)
 }
