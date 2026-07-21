@@ -142,6 +142,7 @@ export interface EventDraft {
 }
 
 export interface EventBasics {
+  /** Public event display name (UI label: Event Display Name) */
   organizerName: string;
   eventName: string;
   eventType: EventType;

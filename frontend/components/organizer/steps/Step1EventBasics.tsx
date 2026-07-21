@@ -311,17 +311,17 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
           </Text>
         </View>
 
-        {/* Organizer Name */}
+        {/* Event Display Name (maps to basics.organizerName for backend) */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Organizer / Company Name *</Text>
+          <Text style={styles.label}>Event Display Name *</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., RunClub India"
+            placeholder="e.g., Mumbai Marathon Official"
             placeholderTextColor="#999"
             value={basics.organizerName}
             onChangeText={(text) => updateBasics({ organizerName: text })}
           />
-          <Text style={styles.hint}>This will appear on the event page</Text>
+          <Text style={styles.hint}>Public display name shown on the event page</Text>
         </View>
 
         {/* Event Name */}
@@ -366,9 +366,9 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
           </ScrollView>
         </View>
 
-        {/* Event Dates */}
+        {/* Start: Date + Time */}
         <View style={styles.dateRow}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={[styles.inputGroup, styles.dateCol]}>
             <Text style={styles.label}>Start Date *</Text>
             <TouchableOpacity 
               style={styles.dateInput}
@@ -384,26 +384,7 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
             </TouchableOpacity>
           </View>
           
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity 
-              style={styles.dateInput}
-              onPress={() => openPicker('endDate', 'date')}
-            >
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <Text style={[
-                styles.dateText,
-                !basics.endDate && styles.datePlaceholder,
-              ]}>
-                {basics.endDate || 'Select date'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Event Time */}
-        <View style={styles.dateRow}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={[styles.inputGroup, styles.dateCol]}>
             <Text style={styles.label}>Start Time *</Text>
             <TouchableOpacity 
               style={styles.dateInput}
@@ -418,8 +399,27 @@ export default function Step1EventBasics({ eventDraft, updateEventDraft }: Props
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* End: Date + Time */}
+        <View style={styles.dateRow}>
+          <View style={[styles.inputGroup, styles.dateCol]}>
+            <Text style={styles.label}>End Date</Text>
+            <TouchableOpacity 
+              style={styles.dateInput}
+              onPress={() => openPicker('endDate', 'date')}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#666" />
+              <Text style={[
+                styles.dateText,
+                !basics.endDate && styles.datePlaceholder,
+              ]}>
+                {basics.endDate || 'Select date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={[styles.inputGroup, styles.dateCol]}>
             <Text style={styles.label}>End Time</Text>
             <TouchableOpacity 
               style={styles.dateInput}
@@ -635,6 +635,11 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'flex-start',
+  },
+  dateCol: {
+    flex: 1,
+    minWidth: 0,
   },
   dateInput: {
     flexDirection: 'row',
@@ -648,6 +653,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   dateText: {
+    flex: 1,
     fontSize: 15,
     color: '#333',
   },
