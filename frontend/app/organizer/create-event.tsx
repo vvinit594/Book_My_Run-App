@@ -40,14 +40,16 @@ const initialEventDraft: EventDraft = {
   location: {
     venueName: '',
     address: '',
+    country: 'India',
     city: '',
     state: '',
     pincode: '',
   },
   description: {
     about: '',
-    rules: '',
     socialLinks: {},
+    faqType: 'link',
+    faqLink: '',
     faqs: [],
   },
   photos: {

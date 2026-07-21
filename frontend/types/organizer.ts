@@ -166,8 +166,11 @@ export interface BibExpoDay {
 }
 
 export interface EventLocation {
+  /** UI: Address Line 1 */
   venueName: string;
+  /** UI: Address Line 2 */
   address: string;
+  country: string;
   city: string;
   state: string;
   pincode: string;
@@ -184,8 +187,12 @@ export interface FAQ {
   order: number;
 }
 
+export type EventFaqType = "link" | "questions";
+
 export interface EventDescription {
+  /** UI: Description */
   about: string;
+  /** @deprecated Removed from Step 3 UI; kept for old drafts */
   rules?: string;
   socialLinks?: {
     website?: string;
@@ -193,6 +200,8 @@ export interface EventDescription {
     twitter?: string;
     facebook?: string;
   };
+  faqType?: EventFaqType;
+  faqLink?: string;
   faqs: FAQ[];
 }
 

@@ -1,14 +1,18 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TextInput, 
-  TouchableOpacity 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EventDraft } from '../../../types/organizer';
+import { COUNTRY_OPTIONS } from '../../../constants/organizer';
 
 interface Props {
   eventDraft: EventDraft;
@@ -17,6 +21,7 @@ interface Props {
 
 export default function Step2EventLocation({ eventDraft, updateEventDraft }: Props) {
   const { location } = eventDraft;
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   const updateLocation = (updates: Partial<typeof location>) => {
     updateEventDraft({
@@ -24,10 +29,11 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
     });
   };
 
+  const selectedCountry = location.country || 'India';
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Ionicons name="location-outline" size={28} color="#E91E63" />
@@ -38,24 +44,24 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
           </Text>
         </View>
 
-        {/* Venue Name */}
+        {/* Address Line 1 (maps to venueName) */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Venue Name *</Text>
+          <Text style={styles.label}>Address Line 1 *</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., Marine Drive"
+            placeholder="e.g., Marine Drive, Near NCPA"
             placeholderTextColor="#999"
             value={location.venueName}
             onChangeText={(text) => updateLocation({ venueName: text })}
           />
         </View>
 
-        {/* Address */}
+        {/* Address Line 2 (maps to address) */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full Address *</Text>
+          <Text style={styles.label}>Address Line 2 *</Text>
           <TextInput
             style={[styles.input, styles.multilineInput]}
-            placeholder="Enter complete address"
+            placeholder="Apartment, landmark, or additional details"
             placeholderTextColor="#999"
             value={location.address}
             onChangeText={(text) => updateLocation({ address: text })}
@@ -65,9 +71,22 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
           />
         </View>
 
+        {/* Country */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Country *</Text>
+          <TouchableOpacity
+            style={styles.dropdown}
+            onPress={() => setCountryPickerOpen(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.dropdownText}>{selectedCountry}</Text>
+            <Ionicons name="chevron-down" size={18} color="#666" />
+          </TouchableOpacity>
+        </View>
+
         {/* City & State Row */}
         <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={[styles.inputGroup, styles.col]}>
             <Text style={styles.label}>City *</Text>
             <TextInput
               style={styles.input}
@@ -77,8 +96,8 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
               onChangeText={(text) => updateLocation({ city: text })}
             />
           </View>
-          
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+
+          <View style={[styles.inputGroup, styles.col]}>
             <Text style={styles.label}>State *</Text>
             <TextInput
               style={styles.input}
@@ -126,7 +145,6 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
           )}
         </View>
 
-        {/* Additional Info */}
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={20} color="#2196F3" />
           <Text style={styles.infoText}>
@@ -136,6 +154,49 @@ export default function Step2EventLocation({ eventDraft, updateEventDraft }: Pro
 
         <View style={styles.bottomSpacing} />
       </View>
+
+      <Modal
+        visible={countryPickerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCountryPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCountryPickerOpen(false)}
+        >
+          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Select Country</Text>
+            <FlatList
+              data={COUNTRY_OPTIONS}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const selected = item === selectedCountry;
+                return (
+                  <TouchableOpacity
+                    style={[styles.optionRow, selected && styles.optionRowSelected]}
+                    onPress={() => {
+                      updateLocation({ country: item });
+                      setCountryPickerOpen(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[styles.optionText, selected && styles.optionTextSelected]}
+                    >
+                      {item}
+                    </Text>
+                    {selected ? (
+                      <Ionicons name="checkmark" size={18} color="#E91E63" />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -195,9 +256,29 @@ const styles = StyleSheet.create({
     minHeight: 80,
     paddingTop: 14,
   },
+  dropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#333',
+    flex: 1,
+  },
   row: {
     flexDirection: 'row',
     gap: 12,
+  },
+  col: {
+    flex: 1,
+    minWidth: 0,
   },
   mapPlaceholder: {
     backgroundColor: '#fff',
@@ -252,5 +333,54 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 34,
+    maxHeight: '55%',
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e0e0e0',
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionRowSelected: {
+    backgroundColor: '#FCE4EC',
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+  optionText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  optionTextSelected: {
+    color: '#E91E63',
+    fontWeight: '600',
   },
 });

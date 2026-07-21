@@ -113,3 +113,22 @@ export function validateGstAgainstPan(
   return { valid: true };
 }
 
+/** Countries for Event Location (default: India) */
+export const COUNTRY_OPTIONS = [
+  "India",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Singapore",
+  "Australia",
+  "Nepal",
+  "Sri Lanka",
+  "Bangladesh",
+  "Canada",
+  "Germany",
+  "France",
+  "Japan",
+  "Other",
+] as const;
+
+
