@@ -214,6 +214,8 @@ export interface EventPhotos {
 export interface EventGST {
   hasGST: boolean;
   gstNumber?: string;
+  /** inclusive = GST in ticket price; exclusive = add GST at checkout */
+  ticketPriceGstType?: "inclusive" | "exclusive";
 }
 
 export interface EventTicket {

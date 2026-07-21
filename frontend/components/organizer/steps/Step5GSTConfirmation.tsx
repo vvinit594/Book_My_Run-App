@@ -74,7 +74,13 @@ export default function Step5GSTConfirmation({ eventDraft, updateEventDraft }: P
                 styles.optionButton,
                 !gst.hasGST && styles.optionButtonSelected,
               ]}
-              onPress={() => updateGST({ hasGST: false, gstNumber: undefined })}
+              onPress={() =>
+                updateGST({
+                  hasGST: false,
+                  gstNumber: undefined,
+                  ticketPriceGstType: undefined,
+                })
+              }
             >
               <Text style={[
                 styles.optionButtonText,
@@ -105,6 +111,43 @@ export default function Step5GSTConfirmation({ eventDraft, updateEventDraft }: P
               </Text>
             </View>
 
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Ticket Price GST? *</Text>
+              <View style={styles.optionButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    gst.ticketPriceGstType === 'inclusive' && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => updateGST({ ticketPriceGstType: 'inclusive' })}
+                >
+                  <Text style={[
+                    styles.optionButtonText,
+                    gst.ticketPriceGstType === 'inclusive' && styles.optionButtonTextSelected,
+                  ]}>
+                    Inclusive
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    gst.ticketPriceGstType === 'exclusive' && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => updateGST({ ticketPriceGstType: 'exclusive' })}
+                >
+                  <Text style={[
+                    styles.optionButtonText,
+                    gst.ticketPriceGstType === 'exclusive' && styles.optionButtonTextSelected,
+                  ]}>
+                    Exclusive
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.hint}>
+                Inclusive: GST already in ticket price. Exclusive: GST added at checkout.
+              </Text>
+            </View>
+
             {/* GST Rate Info */}
             <View style={styles.gstRateCard}>
               <Text style={styles.gstRateTitle}>Applicable GST Rate</Text>
@@ -113,7 +156,9 @@ export default function Step5GSTConfirmation({ eventDraft, updateEventDraft }: P
                 <Text style={styles.gstRateValue}>18%</Text>
               </View>
               <Text style={styles.gstRateNote}>
-                GST will be calculated and shown separately during checkout
+                {gst.ticketPriceGstType === 'inclusive'
+                  ? 'Ticket prices already include GST; breakup can still be shown at checkout.'
+                  : 'GST will be calculated and shown separately during checkout'}
               </Text>
             </View>
           </View>

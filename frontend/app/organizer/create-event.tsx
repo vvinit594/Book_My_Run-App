@@ -109,6 +109,23 @@ export default function CreateEventScreen() {
   }, [currentStep]);
 
   const handleNext = useCallback(() => {
+    if (currentStep === 5 && eventDraft.gst.hasGST) {
+      if (!eventDraft.gst.gstNumber?.trim()) {
+        Alert.alert(
+          'GST Number Required',
+          'Please enter your GST Number to continue.'
+        );
+        return;
+      }
+      if (!eventDraft.gst.ticketPriceGstType) {
+        Alert.alert(
+          'Ticket Price GST Required',
+          'Please select whether ticket prices are Inclusive or Exclusive of GST.'
+        );
+        return;
+      }
+    }
+
     // Mark current step as completed
     if (!completedSteps.includes(currentStep)) {
       setCompletedSteps(prev => [...prev, currentStep]);
@@ -120,7 +137,7 @@ export default function CreateEventScreen() {
       // Last step - publish event
       handlePublish();
     }
-  }, [currentStep, completedSteps]);
+  }, [currentStep, completedSteps, eventDraft.gst]);
 
   const handleSaveDraft = useCallback(() => {
     Alert.alert(
